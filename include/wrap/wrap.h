@@ -2,4 +2,4 @@
 
 namespace wrap {
 int foo();
-}
+}  // namespace wrap
