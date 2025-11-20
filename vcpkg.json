@@ -1,4 +1,7 @@
 {
+  "name": "wrap",
+  "version": "0.1.0",
+  "description": "A fast web framework for C++",
   "dependencies": [
     "fmt",
     "folly",
