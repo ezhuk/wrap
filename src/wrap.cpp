@@ -1,6 +1,6 @@
 #include "wrap/wrap.h"
 
-#namespace wrap {
+namespace wrap {
 int foo() {
   return 0;
 }
