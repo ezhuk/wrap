@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A fast web framework for C++",
   "dependencies": [
+    "benchmark",
     "fmt",
     "folly",
     "gtest",

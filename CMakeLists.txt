@@ -59,6 +59,10 @@ if(BUILD_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
 
+if(BUILD_EXAMPLES)
+  add_subdirectory(examples/hello)
+endif()
+
 include(GNUInstallDirs)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
