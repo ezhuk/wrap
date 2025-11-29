@@ -28,6 +28,7 @@ target_include_directories(wrap
 
 target_sources(wrap
   PRIVATE
+    src/app.cpp
     src/wrap.cpp
 )
 
