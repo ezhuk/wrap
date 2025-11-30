@@ -1,7 +1,12 @@
 #pragma once
 
+#include <proxygen/httpserver/HTTPServer.h>
+#include <proxygen/httpserver/ResponseBuilder.h>
+
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace wrap {
 class AppOptions {
@@ -13,10 +18,20 @@ public:
 
 class App final {
 public:
+  using Handler = std::function<void(proxygen::HTTPMessage const&, proxygen::ResponseBuilder&)>;
+
   explicit App(AppOptions options = {});
-  virtual ~App();
+  ~App() = default;
+
+  App& get(std::string const& path, Handler handler);
+
+  void run(std::string const& host, std::uint16_t port);
+
+  void run();
 
 private:
   AppOptions options_;
+  std::unique_ptr<proxygen::HTTPServer> server_;
+  std::unordered_map<std::string, Handler> handlers_;
 };
 }  // namespace wrap

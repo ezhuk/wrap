@@ -7,6 +7,7 @@ target_sources(wrap-hello
 
 target_link_libraries(wrap-hello
   PRIVATE
+    fmt::fmt
     wrap::wrap
 )
 
