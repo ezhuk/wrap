@@ -9,6 +9,19 @@
 #include <unordered_map>
 
 namespace wrap {
+class Request final {
+public:
+  explicit Request(proxygen::HTTPMessage const* msg) : msg_(msg) {}
+  ~Request() = default;
+
+  std::string getMethod() const { return msg_->getMethodString(); }
+
+  std::string getURL() const { return msg_->getURL(); }
+
+private:
+  proxygen::HTTPMessage const* msg_;
+};
+
 class AppOptions {
 public:
   std::string host{"0.0.0.0"};
@@ -18,7 +31,7 @@ public:
 
 class App final {
 public:
-  using Handler = std::function<void(proxygen::HTTPMessage const&, proxygen::ResponseBuilder&)>;
+  using Handler = std::function<void(Request const&, proxygen::ResponseBuilder&)>;
 
   explicit App(AppOptions options = {});
   ~App() = default;
