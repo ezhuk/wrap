@@ -27,7 +27,7 @@ public:
     auto handler = getHandler(request_->getMethodString() + ":" + request_->getURL());
     if (handler) {
       proxygen::ResponseBuilder response(downstream_);
-      handler(*request_, response);
+      handler(Request(request_.get()), response);
     } else {
       proxygen::ResponseBuilder(downstream_)
           .status(404, "Not Found")
