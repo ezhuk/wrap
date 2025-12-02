@@ -26,8 +26,17 @@ public:
   void onEOM() noexcept override {
     auto handler = getHandler(request_->getMethodString() + ":" + request_->getURL());
     if (handler) {
-      proxygen::ResponseBuilder response(downstream_);
+      proxygen::ResponseBuilder builder(downstream_);
+      Response response(&builder);
       handler(Request(request_.get()), response);
+      if (builder.getHeaders() && builder.getHeaders()->getStatusCode()) {
+        builder.sendWithEOM();
+      } else {
+        proxygen::ResponseBuilder(downstream_)
+            .status(404, "Not Found")
+            .body("{\"error\":\"Not Found\"}")
+            .sendWithEOM();
+      }
     } else {
       proxygen::ResponseBuilder(downstream_)
           .status(404, "Not Found")

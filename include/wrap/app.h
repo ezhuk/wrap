@@ -22,6 +22,25 @@ private:
   proxygen::HTTPMessage const* msg_;
 };
 
+class Response final {
+public:
+  explicit Response(proxygen::ResponseBuilder* res) : res_(res) {}
+  ~Response() = default;
+
+  Response& status(std::uint16_t code, std::string const& message) {
+    res_->status(code, message);
+    return *this;
+  }
+
+  Response& body(std::string const& body) {
+    res_->body(body);
+    return *this;
+  }
+
+private:
+  proxygen::ResponseBuilder* res_;
+};
+
 class AppOptions {
 public:
   std::string host{"0.0.0.0"};
@@ -31,7 +50,7 @@ public:
 
 class App final {
 public:
-  using Handler = std::function<void(Request const&, proxygen::ResponseBuilder&)>;
+  using Handler = std::function<void(Request const&, Response&)>;
 
   explicit App(AppOptions options = {});
   ~App() = default;
