@@ -18,6 +18,8 @@ public:
 
   std::string getURL() const { return msg_->getURL(); }
 
+  std::string getParam(std::string const& name) const { return ""; }
+
 private:
   proxygen::HTTPMessage const* msg_;
 };

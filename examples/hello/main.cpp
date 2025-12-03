@@ -10,6 +10,11 @@ int main(int argc, char** argv) {
     res.status(200, "OK").body("{}");
   });
 
+  app.get("/users/:id", [](wrap::Request const& req, wrap::Response& res) {
+    fmt::print("id={}\n", req.getParam("id"));
+    res.status(200, "OK").body(R"({})");
+  });
+
   app.run("0.0.0.0", 8080);
   return 0;
 }
