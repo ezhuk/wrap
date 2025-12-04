@@ -2,15 +2,12 @@
 
 #include "wrap/app.h"
 
+using namespace wrap;
+
 int main(int argc, char** argv) {
-  wrap::App app;
+  App app;
 
-  app.get("/hello", [](wrap::Request const& req, wrap::Response& res) {
-    fmt::print("{} {}\n", req.getMethod(), req.getURL());
-    res.status(200, "OK").body("{}");
-  });
-
-  app.get("/users/:id", [](wrap::Request const& req, wrap::Response& res) {
+  app.get("/users/:id", [](Request const& req, Response& res) {
     fmt::print("id={}\n", req.getParam("id"));
     res.status(200, "OK").body(R"({})");
   });

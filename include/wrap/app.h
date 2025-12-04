@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace wrap {
 class Request final {
@@ -18,10 +19,19 @@ public:
 
   std::string getURL() const { return msg_->getURL(); }
 
-  std::string getParam(std::string const& name) const { return ""; }
+  std::string getParam(std::string const& name) const {
+    auto iter = params_.find(name);
+    if (params_.end() != iter) {
+      return iter->second;
+    }
+    return "";
+  }
+
+  void setParam(std::string const& name, std::string const& data) { params_[name] = data; }
 
 private:
   proxygen::HTTPMessage const* msg_;
+  std::unordered_map<std::string, std::string> params_;
 };
 
 class Response final {
@@ -54,6 +64,12 @@ class App final {
 public:
   using Handler = std::function<void(Request const&, Response&)>;
 
+  struct Route {
+    proxygen::HTTPMethod method;
+    std::string path;
+    Handler handler;
+  };
+
   explicit App(AppOptions options = {});
   ~App() = default;
 
@@ -66,6 +82,6 @@ public:
 private:
   AppOptions options_;
   std::unique_ptr<proxygen::HTTPServer> server_;
-  std::unordered_map<std::string, Handler> handlers_;
+  std::vector<Route> routes_;
 };
 }  // namespace wrap
