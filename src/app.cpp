@@ -7,6 +7,13 @@
 
 namespace wrap {
 namespace {
+static folly::StringPiece normalize(folly::StringPiece str) {
+  while (str.size() > 1 && str.back() == '/') {
+    str.pop_back();
+  }
+  return str;
+}
+
 class RequestHandler final : public proxygen::RequestHandler {
 public:
   explicit RequestHandler(std::vector<App::Route>* routes) : routes_(routes) {}
@@ -54,50 +61,39 @@ public:
 
 private:
   App::Handler getHandler(Request& request) {
-    auto const method = request_->getMethod();
-    auto const url = request_->getURL();
-
     std::vector<folly::StringPiece> parts;
-    folly::split('/', url, parts);
-
+    folly::split('/', normalize(request_->getPathAsStringPiece()), parts);
     for (auto const& route : *routes_) {
-      if (route.method != method) {
-        continue;
-      }
-
-      folly::StringPiece routePath(route.path);
-      std::vector<folly::StringPiece> routeParts;
-      folly::split('/', routePath, routeParts);
-
-      if (routeParts.size() != parts.size()) {
-        continue;
-      }
-
-      bool matched = true;
-      std::unordered_map<std::string, std::string> params;
-
-      for (std::size_t i = 0; i < routeParts.size(); ++i) {
-        auto seg = routeParts[i];
-        auto val = parts[i];
-        if (!seg.empty() && seg.front() == ':') {
-          if (val.empty()) {
-            matched = false;
-            break;
+      if (route.method == request_->getMethod()) {
+        std::vector<folly::StringPiece> segments;
+        folly::split('/', normalize(route.path), segments);
+        if (parts.size() == segments.size()) {
+          bool match = true;
+          std::unordered_map<std::string, std::string> params;
+          for (std::size_t i = 0; i < parts.size(); ++i) {
+            auto lhs = parts[i];
+            auto rhs = segments[i];
+            if (!rhs.empty() && rhs.front() == ':') {
+              if (lhs.empty()) {
+                match = false;
+                break;
+              } else {
+                params.emplace(rhs.subpiece(1).str(), lhs.str());
+              }
+            } else {
+              if (lhs != rhs) {
+                match = false;
+                break;
+              }
+            }
           }
-          auto name = seg.subpiece(1);
-          params.emplace(name.str(), val.str());
-        } else {
-          if (seg != val) {
-            matched = false;
-            break;
+          if (match) {
+            for (auto& [k, v] : params) {
+              request.setParam(k, v);
+            }
+            return route.handler;
           }
         }
-      }
-      if (matched) {
-        for (auto& [k, v] : params) {
-          request.setParam(k, v);
-        }
-        return route.handler;
       }
     }
     return nullptr;
