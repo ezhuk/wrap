@@ -29,6 +29,10 @@ public:
 
   void setParam(std::string const& name, std::string const& data) { params_[name] = data; }
 
+  std::string getQueryParam(std::string const& name) const {
+    return msg_->getDecodedQueryParam(name);
+  }
+
 private:
   proxygen::HTTPMessage const* msg_;
   std::unordered_map<std::string, std::string> params_;
