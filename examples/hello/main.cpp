@@ -8,7 +8,8 @@ int main(int argc, char** argv) {
   App app;
 
   app.post("/users", [](Request const& req, Response& res) {
-    res.status(201, "Created").body(R"({})");
+    int const id = 123;
+    res.status(201, "Created").header("Location", fmt::format("/users/{}", id)).body(R"({})");
   });
 
   app.get("/users/:id", [](Request const& req, Response& res) {
