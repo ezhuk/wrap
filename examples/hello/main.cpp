@@ -7,6 +7,11 @@ using namespace wrap;
 int main(int argc, char** argv) {
   App app;
 
+  app.post("/users", [](Request const& req, Response& res) {
+    int const id = 123;
+    res.status(201, "Created").header("Location", fmt::format("/users/{}", id)).body(R"({})");
+  });
+
   app.get("/users/:id", [](Request const& req, Response& res) {
     fmt::print("id={}\n", req.getParam("id"));
     res.status(200, "OK").body(R"({})");

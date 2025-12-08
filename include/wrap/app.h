@@ -48,6 +48,11 @@ public:
     return *this;
   }
 
+  Response& header(std::string const& name, std::string const& data) {
+    res_->header(name, data);
+    return *this;
+  }
+
   Response& body(std::string const& body) {
     res_->body(body);
     return *this;
@@ -77,6 +82,7 @@ public:
   explicit App(AppOptions options = {});
   ~App() = default;
 
+  App& post(std::string const& path, Handler handler);
   App& get(std::string const& path, Handler handler);
 
   void run(std::string const& host, std::uint16_t port);
