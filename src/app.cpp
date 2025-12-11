@@ -31,7 +31,7 @@ public:
   }
 
   void onEOM() noexcept override {
-    auto request = Request(request_.get());
+    auto request = Request(request_.get(), body_.get());
     auto handler = getHandler(request);
     if (handler) {
       proxygen::ResponseBuilder builder(downstream_);
