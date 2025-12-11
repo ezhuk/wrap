@@ -2,6 +2,20 @@
 
 #include "wrap/app.h"
 
+namespace {
+static auto const kUserValidator = folly::jsonschema::makeValidator(folly::parseJson(R"JSON(
+{
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" }
+  },
+  "additionalProperties": false
+}
+)JSON"));
+}  // namespace
+
 using namespace wrap;
 
 int main(int argc, char** argv) {
@@ -9,12 +23,12 @@ int main(int argc, char** argv) {
 
   app.post("/users", [](Request const& req, Response& res) {
     auto const doc = req.json();
-    if (doc.count("id")) {
+    if (kUserValidator->try_validate(doc)) {
+      res.status(422, "Unprocessable Entity").body(R"({"error":"Schema validation failed"})");
+    } else {
       res.status(201, "Created")
           .header("Location", fmt::format("/users/{}", doc["id"].asString()))
           .body(R"({})");
-    } else {
-      res.status(400, "Bad Request").body(R"({"error":"User id is not found"})");
     }
   });
 
