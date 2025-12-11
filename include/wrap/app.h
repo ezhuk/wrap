@@ -1,5 +1,6 @@
 #pragma once
 
+#include <folly/json.h>
 #include <proxygen/httpserver/HTTPServer.h>
 #include <proxygen/httpserver/ResponseBuilder.h>
 
@@ -12,7 +13,7 @@
 namespace wrap {
 class Request final {
 public:
-  explicit Request(proxygen::HTTPMessage const* msg) : msg_(msg) {}
+  Request(proxygen::HTTPMessage const* msg, folly::IOBuf* body) : msg_(msg), body_(body) {}
   ~Request() = default;
 
   std::string getMethod() const { return msg_->getMethodString(); }
@@ -33,8 +34,11 @@ public:
     return msg_->getDecodedQueryParam(name);
   }
 
+  folly::dynamic json() const { return folly::parseJson(body_->toString()); }
+
 private:
   proxygen::HTTPMessage const* msg_;
+  folly::IOBuf* body_;
   std::unordered_map<std::string, std::string> params_;
 };
 
