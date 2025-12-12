@@ -35,6 +35,8 @@ public:
     return msg_->getDecodedQueryParam(name);
   }
 
+  std::string body() const { return body_ ? body_->toString() : std::string{}; }
+
   folly::dynamic json() const { return folly::parseJson(body_->toString()); }
 
 private:
