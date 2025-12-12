@@ -1,6 +1,7 @@
 #pragma once
 
-#include <folly/json.h>
+#include <folly/json/JSONSchema.h>
+#include <folly/json/json.h>
 #include <proxygen/httpserver/HTTPServer.h>
 #include <proxygen/httpserver/ResponseBuilder.h>
 
