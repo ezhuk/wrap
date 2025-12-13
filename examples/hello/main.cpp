@@ -17,22 +17,21 @@ public:
         );
     return schema;
   }
+
+  static std::optional<User> make(folly::dynamic const& data) {
+    try {
+      User user;
+      user.id = data["id"].asString();
+      if (data.count("name")) {
+        user.name = data["name"].asString();
+      }
+      return user;
+    } catch (...) {
+      return std::nullopt;
+    }
+  }
 };
 }  // namespace
-
-namespace folly {
-template <>
-struct DynamicConverter<User> {
-  static User convert(folly::dynamic const& data) {
-    User user;
-    user.id = data["id"].asString();
-    if (data.count("name")) {
-      user.name = data["name"].asString();
-    }
-    return user;
-  };
-};
-}  // namespace folly
 
 using namespace wrap;
 
