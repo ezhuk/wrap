@@ -1,6 +1,5 @@
 #pragma once
 
-#include <folly/json/DynamicConverter.h>
 #include <folly/json/JSONSchema.h>
 #include <folly/json/json.h>
 #include <proxygen/httpserver/HTTPServer.h>
@@ -39,7 +38,7 @@ public:
 
   std::string body() const { return body_ ? body_->toString() : std::string{}; }
 
-  folly::dynamic json() const { return folly::parseJson(body_->toString()); }
+  folly::dynamic json() const { return folly::parseJson(body()); }
 
 private:
   proxygen::HTTPMessage const* msg_;
@@ -79,7 +78,7 @@ public:
     try {
       auto const json = folly::parseJson(str);
       validator->validate(json);
-      return folly::convertTo<T>(json);
+      return T::make(json);
     } catch (...) {
       return std::nullopt;
     }
