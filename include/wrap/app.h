@@ -1,5 +1,6 @@
 #pragma once
 
+#include <folly/json/DynamicConverter.h>
 #include <folly/json/JSONSchema.h>
 #include <folly/json/json.h>
 #include <proxygen/httpserver/HTTPServer.h>
@@ -7,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -67,6 +69,21 @@ public:
 
 private:
   proxygen::ResponseBuilder* res_;
+};
+
+template <typename T>
+class Model {
+public:
+  static std::optional<T> parse(std::string const& str) {
+    static auto const validator = folly::jsonschema::makeValidator(T::schema());
+    try {
+      auto const json = folly::parseJson(str);
+      validator->validate(json);
+      return folly::convertTo<T>(json);
+    } catch (...) {
+      return std::nullopt;
+    }
+  }
 };
 
 class AppOptions {

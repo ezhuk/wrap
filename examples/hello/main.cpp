@@ -3,18 +3,36 @@
 #include "wrap/app.h"
 
 namespace {
-static auto const kUserValidator = folly::jsonschema::makeValidator(folly::parseJson(R"JSON(
-{
-  "type": "object",
-  "required": ["id"],
-  "properties": {
-    "id": { "type": "string" },
-    "name": { "type": "string" }
-  },
-  "additionalProperties": false
-}
-)JSON"));
+class User final : public wrap::Model<User> {
+public:
+  std::string id;
+  std::optional<std::string> name;
+
+  static folly::dynamic const& schema() {
+    static folly::dynamic const schema =
+        folly::dynamic::object("type", "object")("required", folly::dynamic::array("id"))(
+            "properties", folly::dynamic::object("id", folly::dynamic::object("type", "string"))(
+                              "name", folly::dynamic::object("type", "string")
+                          )
+        );
+    return schema;
+  }
+};
 }  // namespace
+
+namespace folly {
+template <>
+struct DynamicConverter<User> {
+  static User convert(folly::dynamic const& data) {
+    User user;
+    user.id = data["id"].asString();
+    if (data.count("name")) {
+      user.name = data["name"].asString();
+    }
+    return user;
+  };
+};
+}  // namespace folly
 
 using namespace wrap;
 
@@ -22,14 +40,13 @@ int main(int argc, char** argv) {
   App app;
 
   app.post("/users", [](Request const& req, Response& res) {
-    auto const doc = req.json();
-    if (kUserValidator->try_validate(doc)) {
-      res.status(422, "Unprocessable Entity").body(R"({"error":"Schema validation failed"})");
-    } else {
-      res.status(201, "Created")
-          .header("Location", fmt::format("/users/{}", doc["id"].asString()))
-          .body(R"({})");
+    auto const user = User::parse(req.body());
+    if (!user) {
+      res.status(422, "Unprocessable Entity").body(R"({"error":"Could not parse user data"})");
+      return;
     }
+
+    res.status(201, "Created").header("Location", fmt::format("/users/{}", user->id)).body(R"({})");
   });
 
   app.get("/users/:id", [](Request const& req, Response& res) {
