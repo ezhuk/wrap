@@ -71,6 +71,12 @@ private:
 };
 
 template <typename T>
+struct Created {
+  T value;
+  std::string location;
+};
+
+template <typename T>
 class Model {
 public:
   static std::optional<T> parse(std::string const& str) {
@@ -107,6 +113,29 @@ public:
 
   App& post(std::string const& path, Handler handler);
   App& get(std::string const& path, Handler handler);
+
+  template <typename T, typename F>
+  App& post(std::string const& path, F&& func) {
+    return post(path, [f = std::forward<F>(func)](Request const& req, Response& res) {
+      auto const obj = T::parse(req.body());
+      if (!obj) {
+        res.status(422, "Unprocessable Entity").body(R"({"error":"Could not parse request data"})");
+        return;
+      }
+      Created<T> created;
+      try {
+        created = f(*obj);
+      } catch (...) {
+        res.status(500, "Internal Server Error")
+            .body(R"({"error":"Error processing the request"})");
+        return;
+      }
+      res.status(201, "Created")
+          .header("Location", created.location)
+          .header("Content-Type", "application/json")
+          .body(folly::toJson(created.value.dump()));
+    });
+  }
 
   void run(std::string const& host, std::uint16_t port);
 
