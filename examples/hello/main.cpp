@@ -30,6 +30,15 @@ public:
       return std::nullopt;
     }
   }
+
+  folly::dynamic dump() const {
+    folly::dynamic data = folly::dynamic::object;
+    data["id"] = id;
+    if (name) {
+      data["name"] = *name;
+    }
+    return data;
+  }
 };
 }  // namespace
 
@@ -38,14 +47,11 @@ using namespace wrap;
 int main(int argc, char** argv) {
   App app;
 
-  app.post("/users", [](Request const& req, Response& res) {
-    auto const user = User::parse(req.body());
-    if (!user) {
-      res.status(422, "Unprocessable Entity").body(R"({"error":"Could not parse user data"})");
-      return;
-    }
-
-    res.status(201, "Created").header("Location", fmt::format("/users/{}", user->id)).body(R"({})");
+  app.post<User>("/users", [](User const& user) {
+    return wrap::Created<User>{
+        .value = user,
+        .location = fmt::format("/users/{}", user.id),
+    };
   });
 
   app.get("/users/:id", [](Request const& req, Response& res) {
