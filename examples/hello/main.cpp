@@ -47,12 +47,7 @@ using namespace wrap;
 int main(int argc, char** argv) {
   App app;
 
-  app.post<User>("/users", [](User const& user) {
-    return wrap::Created<User>{
-        .value = user,
-        .location = fmt::format("/users/{}", user.id),
-    };
-  });
+  app.post<User>("/users", [](User const& user) { fmt::print("_id={}\n", user._id()); });
 
   app.get("/users/:id", [](Request const& req, Response& res) {
     fmt::print("id={}\n", req.getParam("id"));
