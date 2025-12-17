@@ -71,12 +71,6 @@ private:
 };
 
 template <typename T>
-struct Created {
-  T value;
-  std::string location;
-};
-
-template <typename T>
 class Model {
 public:
   static std::optional<T> parse(std::string const& str) {
@@ -84,11 +78,19 @@ public:
     try {
       auto const json = folly::parseJson(str);
       validator->validate(json);
-      return T::make(json);
+      auto obj = T::make(json);
+      (static_cast<Model*>(&(*obj)))->id_ =
+          json.count("_id") ? json["_id"].asString() : fmt::format("{}", folly::Random::rand64());
+      return obj;
     } catch (...) {
       return std::nullopt;
     }
   }
+
+  std::string const& _id() const { return id_; }
+
+protected:
+  std::string id_;
 };
 
 class AppOptions {
@@ -122,18 +124,17 @@ public:
         res.status(422, "Unprocessable Entity").body(R"({"error":"Could not parse request data"})");
         return;
       }
-      Created<T> created;
       try {
-        created = f(*obj);
+        f(*obj);
       } catch (...) {
         res.status(500, "Internal Server Error")
             .body(R"({"error":"Error processing the request"})");
         return;
       }
       res.status(201, "Created")
-          .header("Location", created.location)
+          .header("Location", obj->_id())
           .header("Content-Type", "application/json")
-          .body(folly::toJson(created.value.dump()));
+          .body(folly::toJson(obj->dump()));
     });
   }
 
