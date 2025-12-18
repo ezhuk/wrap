@@ -5,23 +5,25 @@
 namespace {
 class User final : public wrap::Model<User> {
 public:
-  std::string id;
+  std::string email;
   std::optional<std::string> name;
 
   static folly::dynamic const& schema() {
-    static folly::dynamic const schema =
-        folly::dynamic::object("type", "object")("required", folly::dynamic::array("id"))(
-            "properties", folly::dynamic::object("id", folly::dynamic::object("type", "string"))(
-                              "name", folly::dynamic::object("type", "string")
-                          )
-        );
+    static folly::dynamic const schema = folly::parseJson(R"({
+      "type": "object",
+      "required": ["email"],
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" }
+      }
+      })");
     return schema;
   }
 
   static std::optional<User> make(folly::dynamic const& data) {
     try {
       User user;
-      user.id = data["id"].asString();
+      user.email = data["email"].asString();
       if (data.count("name")) {
         user.name = data["name"].asString();
       }
@@ -33,7 +35,7 @@ public:
 
   folly::dynamic dump() const {
     folly::dynamic data = folly::dynamic::object;
-    data["id"] = id;
+    data["email"] = email;
     if (name) {
       data["name"] = *name;
     }

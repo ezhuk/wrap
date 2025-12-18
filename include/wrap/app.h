@@ -71,6 +71,11 @@ private:
 };
 
 template <typename T>
+struct IdPolicy {
+  static std::string generate() { return fmt::format("{}", folly::Random::rand64()); }
+};
+
+template <typename T>
 class Model {
 public:
   static std::optional<T> parse(std::string const& str) {
@@ -79,8 +84,12 @@ public:
       auto const json = folly::parseJson(str);
       validator->validate(json);
       auto obj = T::make(json);
-      (static_cast<Model*>(&(*obj)))->id_ =
-          json.count("_id") ? json["_id"].asString() : fmt::format("{}", folly::Random::rand64());
+      auto self = static_cast<Model*>(&(*obj));
+      if (json.count("_id")) {
+        self->id_ = json["_id"].asString();
+      } else {
+        self->id_ = IdPolicy<T>::generate();
+      }
       return obj;
     } catch (...) {
       return std::nullopt;
