@@ -75,6 +75,17 @@ struct IdPolicy {
   static std::string generate() { return fmt::format("{}", folly::Random::rand64()); }
 };
 
+template <class Owner, class Member>
+struct field_t {
+  std::string_view name;
+  Member Owner::* ptr;
+};
+
+template <class Owner, class Member>
+constexpr field_t<Owner, Member> field(std::string_view name, Member Owner::* ptr) {
+  return {name, ptr};
+}
+
 template <typename T>
 class Model {
 public:
