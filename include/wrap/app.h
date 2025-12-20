@@ -359,6 +359,7 @@ public:
   ~App() = default;
 
   App& post(std::string const& path, Handler handler);
+  App& put(std::string const& path, Handler handler);
   App& get(std::string const& path, Handler handler);
 
   template <typename T, typename F>
@@ -380,6 +381,34 @@ public:
           .header("Location", obj->_id())
           .header("Content-Type", "application/json")
           .body(folly::toJson(obj->dump()));
+    });
+  }
+
+  template <typename T, typename F>
+  App& put(std::string const& path, F&& func) {
+    return put(path, [f = std::forward<F>(func)](Request const& req, Response& res) {
+      auto const obj = T::parse(req.body());
+      if (!obj) {
+        res.status(422, "Unprocessable Entity").body(R"({"error":"Could not parse request data"})");
+        return;
+      }
+      std::string const id = req.getParam("id");
+      try {
+        if constexpr (std::is_void_v<std::invoke_result_t<F, std::string const&, T const&>>) {
+          f(id, *obj);
+          res.status(200, "OK")
+              .header("Content-Type", "application/json")
+              .body(folly::toJson(obj->dump()));
+        } else {
+          auto out = f(id, *obj);
+          res.status(200, "OK")
+              .header("Content-Type", "application/json")
+              .body(folly::toJson(out.dump()));
+        }
+      } catch (...) {
+        res.status(500, "Internal Server Error")
+            .body(R"({"error":"Error processing the request"})");
+      }
     });
   }
 
