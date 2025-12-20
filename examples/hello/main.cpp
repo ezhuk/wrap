@@ -8,38 +8,8 @@ public:
   std::string email;
   std::optional<std::string> name;
 
-  static folly::dynamic const& schema() {
-    static folly::dynamic const schema = folly::parseJson(R"({
-      "type": "object",
-      "required": ["email"],
-      "properties": {
-        "email": { "type": "string" },
-        "name": { "type": "string" }
-      }
-      })");
-    return schema;
-  }
-
-  static std::optional<User> make(folly::dynamic const& data) {
-    try {
-      User user;
-      user.email = data["email"].asString();
-      if (data.count("name")) {
-        user.name = data["name"].asString();
-      }
-      return user;
-    } catch (...) {
-      return std::nullopt;
-    }
-  }
-
-  folly::dynamic dump() const {
-    folly::dynamic data = folly::dynamic::object;
-    data["email"] = email;
-    if (name) {
-      data["name"] = *name;
-    }
-    return data;
+  static constexpr auto meta() {
+    return std::make_tuple(wrap::field("email", &User::email), wrap::field("name", &User::name));
   }
 };
 }  // namespace
