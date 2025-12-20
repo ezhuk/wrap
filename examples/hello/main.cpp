@@ -21,9 +21,8 @@ int main(int argc, char** argv) {
 
   app.post<User>("/users", [](User const& user) { fmt::print("_id={}\n", user._id()); });
 
-  app.get("/users/:id", [](Request const& req, Response& res) {
-    fmt::print("id={}\n", req.getParam("id"));
-    res.status(200, "OK").body(R"({})");
+  app.put<User>("/users/:id", [](std::string const& id, User const& user) {
+    fmt::print("id={}\n", id);
   });
 
   app.run("0.0.0.0", 8080);

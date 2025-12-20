@@ -131,6 +131,11 @@ App& App::post(std::string const& path, Handler handler) {
   return *this;
 }
 
+App& App::put(std::string const& path, Handler handler) {
+  routes_.push_back(Route{proxygen::HTTPMethod::PUT, path, std::move(handler)});
+  return *this;
+}
+
 App& App::get(std::string const& path, Handler handler) {
   routes_.push_back(Route{proxygen::HTTPMethod::GET, path, std::move(handler)});
   return *this;
