@@ -77,16 +77,56 @@ private:
               if (lhs.empty()) {
                 match = false;
                 break;
-              } else {
-                params.emplace(rhs.subpiece(1).str(), lhs.str());
               }
-            } else {
-              if (lhs != rhs) {
+              params.emplace(rhs.subpiece(1).str(), lhs.str());
+              continue;
+            }
+            if (rhs.size() >= 3 && rhs.front() == '{' && rhs.back() == '}') {
+              if (lhs.empty()) {
                 match = false;
                 break;
               }
+              auto inner = rhs.subpiece(1, rhs.size() - 2);
+              folly::StringPiece name = inner;
+              folly::StringPiece type;
+              auto colon = inner.find(':');
+              if (colon != folly::StringPiece::npos) {
+                name = inner.subpiece(0, colon);
+                type = inner.subpiece(colon + 1);
+              }
+              if (name.empty()) {
+                match = false;
+                break;
+              }
+              if (!type.empty()) {
+                if (type == "int") {
+                  bool ok = !lhs.empty();
+                  for (char c : lhs) {
+                    if (c < '0' || c > '9') {
+                      ok = false;
+                      break;
+                    }
+                  }
+                  if (!ok) {
+                    match = false;
+                    break;
+                  }
+                } else if (type == "string") {
+                  // always valid
+                } else {
+                  match = false;
+                  break;
+                }
+              }
+              params.emplace(name.str(), lhs.str());
+              continue;
+            }
+            if (lhs != rhs) {
+              match = false;
+              break;
             }
           }
+
           if (match) {
             for (auto& [k, v] : params) {
               request.setParam(k, v);
