@@ -87,7 +87,6 @@ constexpr field_t<Owner, Member> field(std::string_view name, Member Owner::* pt
 }
 
 namespace detail {
-
 template <class Tuple, class Fn, std::size_t... I>
 constexpr void for_each_impl(Tuple&& t, Fn&& fn, std::index_sequence<I...>) {
   (fn(std::get<I>(t)), ...);
@@ -338,6 +337,30 @@ private:
   }
 };
 
+namespace detail {
+inline void write_json(Response& res, folly::dynamic const& d) {
+  res.status(200, "OK").header("Content-Type", "application/json").body(folly::toJson(d));
+}
+
+template <class T>
+folly::dynamic to_response(T const& v) {
+  if constexpr (std::is_base_of_v<Model<T>, T>) {
+    return v.dump();
+  } else {
+    static_assert(sizeof(T) == 0, "Unsupported response type");
+  }
+}
+
+template <class T>
+folly::dynamic to_response(std::vector<T> const& v) {
+  folly::dynamic arr = folly::dynamic::array;
+  for (auto const& el : v) {
+    arr.push_back(to_response(el));
+  }
+  return arr;
+}
+}  // namespace detail
+
 class AppOptions {
 public:
   std::string host{"0.0.0.0"};
@@ -361,6 +384,26 @@ public:
   App& post(std::string const& path, Handler handler);
   App& put(std::string const& path, Handler handler);
   App& get(std::string const& path, Handler handler);
+
+  template <typename T, typename F>
+  App& get(std::string const& path, F&& func) {
+    return get(path, [f = std::forward<F>(func)](Request const& req, Response& res) {
+      try {
+        if constexpr (std::is_invocable_v<F, std::string const&>) {
+          auto id = req.getParam("id");
+          auto out = f(id);
+          detail::write_json(res, detail::to_response(out));
+        } else if constexpr (std::is_invocable_v<F>) {
+          auto out = f();
+          detail::write_json(res, detail::to_response(out));
+        } else {
+          static_assert(sizeof(F) == 0, "Unsupported GET handler signature");
+        }
+      } catch (...) {
+        res.status(500, "Internal Server Error").body(R"({"error":"Error processing request"})");
+      }
+    });
+  }
 
   template <typename T, typename F>
   App& post(std::string const& path, F&& func) {
