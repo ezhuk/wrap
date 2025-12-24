@@ -25,8 +25,11 @@ int main(int argc, char** argv) {
     fmt::print("id={}\n", id);
   });
 
-  app.get<User>("/users/{id}", [](std::string const& id) {
+  app.get<std::optional<User>>("/users/{id}", [](std::string const& id) -> std::optional<User> {
     fmt::print("id={}\n", id);
+    if (id == "0") {
+      return std::nullopt;
+    }
     User user;
     user.email = "user@example.com";
     return user;
