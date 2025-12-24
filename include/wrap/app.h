@@ -13,6 +13,21 @@
 #include <vector>
 
 namespace wrap {
+class HTTPException : public std::exception {
+public:
+  HTTPException(std::uint16_t status, std::string detail)
+      : status_(status), detail_(std::move(detail)) {}
+
+  std::uint16_t status() const noexcept { return status_; }
+  std::string const& detail() const noexcept { return detail_; }
+
+  char const* what() const noexcept override { return detail_.c_str(); }
+
+private:
+  std::uint16_t status_;
+  std::string detail_;
+};
+
 class Request final {
 public:
   Request(proxygen::HTTPMessage const* msg, folly::IOBuf* body) : msg_(msg), body_(body) {}
@@ -359,6 +374,69 @@ folly::dynamic to_response(std::vector<T> const& v) {
   }
   return arr;
 }
+
+template <class T>
+struct is_std_optional : std::false_type {};
+template <class U>
+struct is_std_optional<std::optional<U>> : std::true_type {};
+template <class T>
+inline constexpr bool is_std_optional_v = is_std_optional<T>::value;
+
+template <class T>
+struct optional_value;
+template <class U>
+struct optional_value<std::optional<U>> {
+  using type = U;
+};
+template <class T>
+using optional_value_t = typename optional_value<T>::type;
+
+template <class T>
+struct is_std_vector : std::false_type {};
+template <class U, class A>
+struct is_std_vector<std::vector<U, A>> : std::true_type {};
+template <class T>
+inline constexpr bool is_std_vector_v = is_std_vector<T>::value;
+
+template <class T>
+struct vector_elem;
+template <class U, class A>
+struct vector_elem<std::vector<U, A>> {
+  using type = U;
+};
+template <class T>
+using vector_elem_t = typename vector_elem<T>::type;
+
+template <class T>
+folly::dynamic to_response_dynamic(T const& v) {
+  // Model objects: require dump()
+  if constexpr (requires { v.dump(); }) {
+    return v.dump();
+  } else {
+    static_assert(sizeof(T) == 0, "Type is not serializable (missing dump())");
+  }
+}
+
+template <class T>
+folly::dynamic to_response_dynamic(std::vector<T> const& v) {
+  folly::dynamic arr = folly::dynamic::array;
+  for (auto const& el : v) {
+    arr.push_back(to_response_dynamic(el));
+  }
+  return arr;
+}
+
+inline void send_json(
+    Response& res, std::uint16_t code, std::string const& message, folly::dynamic const& body
+) {
+  res.status(code, message).header("Content-Type", "application/json").body(folly::toJson(body));
+}
+
+inline void send_error(Response& res, std::uint16_t code, std::string const& detail) {
+  send_json(
+      res, code, (code == 404 ? "Not Found" : "Error"), folly::dynamic::object("detail", detail)
+  );
+}
 }  // namespace detail
 
 class AppOptions {
@@ -385,22 +463,48 @@ public:
   App& put(std::string const& path, Handler handler);
   App& get(std::string const& path, Handler handler);
 
-  template <typename T, typename F>
+  template <typename R, typename F>
   App& get(std::string const& path, F&& func) {
     return get(path, [f = std::forward<F>(func)](Request const& req, Response& res) {
       try {
-        if constexpr (std::is_invocable_v<F, std::string const&>) {
-          auto id = req.getParam("id");
-          auto out = f(id);
-          detail::write_json(res, detail::to_response(out));
-        } else if constexpr (std::is_invocable_v<F>) {
-          auto out = f();
-          detail::write_json(res, detail::to_response(out));
+        if constexpr (std::is_invocable_v<F>) {
+          using Ret = std::invoke_result_t<F>;
+          if constexpr (detail::is_std_optional_v<Ret>) {
+            auto out = f();
+            if (!out) {
+              detail::send_error(res, 404, "Not Found");
+              return;
+            }
+            detail::send_json(res, 200, "OK", detail::to_response_dynamic(*out));
+            return;
+          } else {
+            auto out = f();
+            detail::send_json(res, 200, "OK", detail::to_response_dynamic(out));
+            return;
+          }
+        } else if constexpr (std::is_invocable_v<F, std::string const&>) {
+          auto const id = req.getParam("id");
+          using Ret = std::invoke_result_t<F, std::string const&>;
+          if constexpr (detail::is_std_optional_v<Ret>) {
+            auto out = f(id);
+            if (!out) {
+              detail::send_error(res, 404, "Not Found");
+              return;
+            }
+            detail::send_json(res, 200, "OK", detail::to_response_dynamic(*out));
+            return;
+          } else {
+            auto out = f(id);
+            detail::send_json(res, 200, "OK", detail::to_response_dynamic(out));
+            return;
+          }
         } else {
           static_assert(sizeof(F) == 0, "Unsupported GET handler signature");
         }
+      } catch (HTTPException const& e) {
+        detail::send_error(res, e.status(), e.detail());
       } catch (...) {
-        res.status(500, "Internal Server Error").body(R"({"error":"Error processing request"})");
+        detail::send_error(res, 500, "Internal Server Error");
       }
     });
   }
