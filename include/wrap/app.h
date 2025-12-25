@@ -6,9 +6,12 @@
 #include <proxygen/httpserver/ResponseBuilder.h>
 
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
+#include <tuple>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -437,6 +440,105 @@ inline void send_error(Response& res, std::uint16_t code, std::string const& det
       res, code, (code == 404 ? "Not Found" : "Error"), folly::dynamic::object("detail", detail)
   );
 }
+
+inline std::vector<std::string> braced_param_names(std::string const& path) {
+  std::vector<std::string> out;
+  std::size_t pos = 0;
+  while (true) {
+    auto l = path.find('{', pos);
+    if (l == std::string::npos) {
+      break;
+    }
+    auto r = path.find('}', l + 1);
+    if (r == std::string::npos) {
+      break;
+    }
+    folly::StringPiece inner(path.data() + l + 1, r - (l + 1));
+    auto colon = inner.find(':');
+    if (colon != folly::StringPiece::npos) {
+      inner = inner.subpiece(0, colon);
+    }
+    if (!inner.empty()) {
+      out.push_back(inner.str());
+    }
+    pos = r + 1;
+  }
+  return out;
+}
+
+template <class T>
+bool convert_param(std::string const& s, T& out) {
+  using U = std::remove_cvref_t<T>;
+  if constexpr (std::is_same_v<U, std::string>) {
+    out = s;
+    return true;
+  } else if constexpr (std::is_integral_v<U> && !std::is_same_v<U, bool>) {
+    if (s.empty()) {
+      return false;
+    }
+    std::uint64_t v = 0;
+    for (char c : s) {
+      if (c < '0' || c > '9') {
+        return false;
+      }
+      std::uint64_t d = static_cast<std::uint64_t>(c - '0');
+      if (v > (std::numeric_limits<std::uint64_t>::max() - d) / 10) {
+        return false;
+      }
+      v = v * 10 + d;
+    }
+    if constexpr (std::is_signed_v<U>) {
+      if (v > static_cast<std::uint64_t>(std::numeric_limits<U>::max())) {
+        return false;
+      }
+      out = static_cast<U>(v);
+    } else {
+      if (v > static_cast<std::uint64_t>(std::numeric_limits<U>::max())) {
+        return false;
+      }
+      out = static_cast<U>(v);
+    }
+    return true;
+  } else {
+    static_assert(sizeof(T) == 0, "Unsupported path param type");
+  }
+}
+
+template <class>
+struct fn_traits;
+
+template <class C, class R, class... Args>
+struct fn_traits<R (C::*)(Args...) const> {
+  using result_type = R;
+  static constexpr std::size_t arity = sizeof...(Args);
+
+  template <std::size_t I>
+  using arg = std::tuple_element_t<I, std::tuple<Args...>>;
+};
+
+template <class F>
+using fn_traits_t = fn_traits<decltype(&F::operator())>;
+
+template <class... Args, std::size_t... I>
+bool convert_path_args_impl(
+    Request const& req, std::vector<std::string> const& names, std::tuple<Args...>& out,
+    std::index_sequence<I...>
+) {
+  bool ok = true;
+  ((ok = ok && convert_param<std::remove_cvref_t<Args>>(req.getParam(names[I]), std::get<I>(out))),
+   ...);
+  return ok;
+}
+
+template <class... Args>
+bool convert_path_args(
+    Request const& req, std::vector<std::string> const& names, std::tuple<Args...>& out
+) {
+  if (names.size() != sizeof...(Args)) {
+    return false;
+  }
+  return convert_path_args_impl<Args...>(req, names, out, std::index_sequence_for<Args...>{});
+}
 }  // namespace detail
 
 class AppOptions {
@@ -465,42 +567,43 @@ public:
 
   template <typename R, typename F>
   App& get(std::string const& path, F&& func) {
-    return get(path, [f = std::forward<F>(func)](Request const& req, Response& res) {
+    auto const names = detail::braced_param_names(path);
+
+    return get(path, [f = std::forward<F>(func), names](Request const& req, Response& res) {
       try {
-        if constexpr (std::is_invocable_v<F>) {
-          using Ret = std::invoke_result_t<F>;
-          if constexpr (detail::is_std_optional_v<Ret>) {
-            auto out = f();
-            if (!out) {
-              detail::send_error(res, 404, "Not Found");
-              return;
-            }
-            detail::send_json(res, 200, "OK", detail::to_response_dynamic(*out));
-            return;
-          } else {
-            auto out = f();
-            detail::send_json(res, 200, "OK", detail::to_response_dynamic(out));
-            return;
-          }
-        } else if constexpr (std::is_invocable_v<F, std::string const&>) {
-          auto const id = req.getParam("id");
-          using Ret = std::invoke_result_t<F, std::string const&>;
-          if constexpr (detail::is_std_optional_v<Ret>) {
-            auto out = f(id);
-            if (!out) {
-              detail::send_error(res, 404, "Not Found");
-              return;
-            }
-            detail::send_json(res, 200, "OK", detail::to_response_dynamic(*out));
-            return;
-          } else {
-            auto out = f(id);
-            detail::send_json(res, 200, "OK", detail::to_response_dynamic(out));
-            return;
-          }
-        } else {
-          static_assert(sizeof(F) == 0, "Unsupported GET handler signature");
+        using Traits = detail::fn_traits_t<std::remove_reference_t<F>>;
+        constexpr std::size_t N = Traits::arity;
+        if (names.size() != N) {
+          detail::send_error(res, 500, "Internal Server Error");
+          return;
         }
+        auto call = [&](auto&&... args) {
+          using Ret = std::invoke_result_t<F, decltype(args)...>;
+          if constexpr (detail::is_std_optional_v<Ret>) {
+            auto out = f(std::forward<decltype(args)>(args)...);
+            if (!out) {
+              detail::send_error(res, 404, "Not Found");
+              return;
+            }
+            detail::send_json(res, 200, "OK", detail::to_response_dynamic(*out));
+          } else {
+            auto out = f(std::forward<decltype(args)>(args)...);
+            detail::send_json(res, 200, "OK", detail::to_response_dynamic(out));
+          }
+        };
+        if constexpr (N == 0) {
+          call();
+          return;
+        }
+        auto invoke_with_tuple = [&]<std::size_t... I>(std::index_sequence<I...>) {
+          std::tuple<std::remove_cvref_t<typename Traits::template arg<I>>...> args;
+          if (!detail::convert_path_args(req, names, args)) {
+            detail::send_error(res, 404, "Not Found");
+            return;
+          }
+          std::apply([&](auto&... xs) { call(xs...); }, args);
+        };
+        invoke_with_tuple(std::make_index_sequence<N>{});
       } catch (HTTPException const& e) {
         detail::send_error(res, e.status(), e.detail());
       } catch (...) {
@@ -533,28 +636,52 @@ public:
 
   template <typename T, typename F>
   App& put(std::string const& path, F&& func) {
-    return put(path, [f = std::forward<F>(func)](Request const& req, Response& res) {
+    auto const names = detail::braced_param_names(path);
+    return put(path, [f = std::forward<F>(func), names](Request const& req, Response& res) {
       auto const obj = T::parse(req.body());
       if (!obj) {
         res.status(422, "Unprocessable Entity").body(R"({"error":"Could not parse request data"})");
         return;
       }
-      std::string const id = req.getParam("id");
       try {
-        if constexpr (std::is_void_v<std::invoke_result_t<F, std::string const&, T const&>>) {
-          f(id, *obj);
-          res.status(200, "OK")
-              .header("Content-Type", "application/json")
-              .body(folly::toJson(obj->dump()));
-        } else {
-          auto out = f(id, *obj);
-          res.status(200, "OK")
-              .header("Content-Type", "application/json")
-              .body(folly::toJson(out.dump()));
+        using Traits = detail::fn_traits_t<std::remove_reference_t<F>>;
+        constexpr std::size_t N = Traits::arity;
+        if (N == 0) {
+          detail::send_error(res, 500, "Internal Server Error");
+          return;
         }
+        using Last = std::remove_cvref_t<typename Traits::template arg<N - 1>>;
+        if constexpr (!std::is_same_v<Last, T>) {
+          detail::send_error(res, 500, "Internal Server Error");
+          return;
+        }
+        if (names.size() != (N - 1)) {
+          detail::send_error(res, 500, "Internal Server Error");
+          return;
+        }
+        auto call = [&](auto&&... path_args) {
+          using Ret = std::invoke_result_t<F, decltype(path_args)..., T const&>;
+          if constexpr (std::is_void_v<Ret>) {
+            f(std::forward<decltype(path_args)>(path_args)..., *obj);
+            detail::send_json(res, 200, "OK", obj->dump());
+          } else {
+            auto out = f(std::forward<decltype(path_args)>(path_args)..., *obj);
+            detail::send_json(res, 200, "OK", detail::to_response_dynamic(out));
+          }
+        };
+        auto invoke_with_tuple = [&]<std::size_t... I>(std::index_sequence<I...>) {
+          std::tuple<std::remove_cvref_t<typename Traits::template arg<I>>...> args;
+          if (!detail::convert_path_args(req, names, args)) {
+            detail::send_error(res, 404, "Not Found");
+            return;
+          }
+          std::apply([&](auto&... xs) { call(xs...); }, args);
+        };
+        invoke_with_tuple(std::make_index_sequence<N - 1>{});
+      } catch (HTTPException const& e) {
+        detail::send_error(res, e.status(), e.detail());
       } catch (...) {
-        res.status(500, "Internal Server Error")
-            .body(R"({"error":"Error processing the request"})");
+        detail::send_error(res, 500, "Internal Server Error");
       }
     });
   }
