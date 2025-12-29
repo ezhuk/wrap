@@ -2,46 +2,12 @@
 
 #include "wrap/app.h"
 
-namespace {
-class User final : public wrap::Model<User> {
-public:
-  std::string email;
-  std::optional<std::string> name;
-
-  static constexpr auto meta() {
-    return std::make_tuple(wrap::field("email", &User::email), wrap::field("name", &User::name));
-  }
-};
-}  // namespace
-
 using namespace wrap;
 
 int main(int argc, char** argv) {
   App app;
 
-  app.post<User>("/users", [](User const& user) { fmt::print("_id={}\n", user._id()); });
-
-  app.put<User>("/users/:id", [](std::string const& id, User const& user) {
-    fmt::print("id={}\n", id);
-  });
-
-  app.get<std::optional<User>>("/users/{id}", [](std::string const& id) -> std::optional<User> {
-    fmt::print("id={}\n", id);
-    if (id == "0") {
-      return std::nullopt;
-    }
-    User user;
-    user.email = "user@example.com";
-    return user;
-  });
-
-  app.get<std::vector<User>>("/users", []() {
-    User user1;
-    user1.email = "user1@example.com";
-    User user2;
-    user2.email = "user2@example.com";
-    return std::vector<User>{user1, user2};
-  });
+  app.get("/", []() { return R"({"message":"Hello, world!"})"; });
 
   app.run("0.0.0.0", 8080);
   return 0;

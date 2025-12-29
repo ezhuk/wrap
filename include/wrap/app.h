@@ -441,6 +441,42 @@ inline void send_error(Response& res, std::uint16_t code, std::string const& det
   );
 }
 
+inline void send_ok(Response& res, std::string_view body) {
+  res.status(200, "OK").header("Content-Type", "text/plain; charset=utf-8").body(std::string(body));
+}
+
+inline void send_ok(Response& res, char const* body) {
+  send_ok(res, std::string_view(body ? body : ""));
+}
+
+inline void send_ok(Response& res, std::string const& body) {
+  send_ok(res, std::string_view(body));
+}
+
+inline void send_ok(Response& res, folly::dynamic const& body) { send_json(res, 200, "OK", body); }
+
+template <class T>
+  requires requires(T const& v) { v.dump(); }
+inline void send_ok(Response& res, T const& v) {
+  send_ok(res, v.dump());
+}
+
+template <class T>
+inline void send_ok(Response& res, std::vector<T> const& v) {
+  send_ok(res, to_response_dynamic(v));
+}
+
+template <class T>
+inline void send_ok(Response& res, std::optional<T> const& v) {
+  if (!v) {
+    send_error(res, 404, "Not Found");
+    return;
+  }
+  send_ok(res, *v);
+}
+
+inline void send_no_content(Response& res) { res.status(204, "No Content"); }
+
 inline std::vector<std::string> braced_param_names(std::string const& path) {
   std::vector<std::string> out;
   std::size_t pos = 0;
@@ -565,11 +601,10 @@ public:
   App& put(std::string const& path, Handler handler);
   App& get(std::string const& path, Handler handler);
 
-  template <typename R, typename F>
+  template <typename F>
   App& get(std::string const& path, F&& func) {
     auto const names = detail::braced_param_names(path);
-
-    return get(path, [f = std::forward<F>(func), names](Request const& req, Response& res) {
+    Handler h = [f = std::forward<F>(func), names](Request const& req, Response& res) mutable {
       try {
         using Traits = detail::fn_traits_t<std::remove_reference_t<F>>;
         constexpr std::size_t N = Traits::arity;
@@ -579,16 +614,12 @@ public:
         }
         auto call = [&](auto&&... args) {
           using Ret = std::invoke_result_t<F, decltype(args)...>;
-          if constexpr (detail::is_std_optional_v<Ret>) {
-            auto out = f(std::forward<decltype(args)>(args)...);
-            if (!out) {
-              detail::send_error(res, 404, "Not Found");
-              return;
-            }
-            detail::send_json(res, 200, "OK", detail::to_response_dynamic(*out));
+          if constexpr (std::is_void_v<Ret>) {
+            f(std::forward<decltype(args)>(args)...);
+            detail::send_no_content(res);
           } else {
             auto out = f(std::forward<decltype(args)>(args)...);
-            detail::send_json(res, 200, "OK", detail::to_response_dynamic(out));
+            detail::send_ok(res, out);
           }
         };
         if constexpr (N == 0) {
@@ -596,7 +627,7 @@ public:
           return;
         }
         auto invoke_with_tuple = [&]<std::size_t... I>(std::index_sequence<I...>) {
-          std::tuple<std::remove_cvref_t<typename Traits::template arg<I>>...> args;
+          std::tuple<std::remove_cvref_t<typename Traits::template arg<I>>...> args{};
           if (!detail::convert_path_args(req, names, args)) {
             detail::send_error(res, 404, "Not Found");
             return;
@@ -609,81 +640,8 @@ public:
       } catch (...) {
         detail::send_error(res, 500, "Internal Server Error");
       }
-    });
-  }
-
-  template <typename T, typename F>
-  App& post(std::string const& path, F&& func) {
-    return post(path, [f = std::forward<F>(func)](Request const& req, Response& res) {
-      auto const obj = T::parse(req.body());
-      if (!obj) {
-        res.status(422, "Unprocessable Entity").body(R"({"error":"Could not parse request data"})");
-        return;
-      }
-      try {
-        f(*obj);
-      } catch (...) {
-        res.status(500, "Internal Server Error")
-            .body(R"({"error":"Error processing the request"})");
-        return;
-      }
-      res.status(201, "Created")
-          .header("Location", obj->_id())
-          .header("Content-Type", "application/json")
-          .body(folly::toJson(obj->dump()));
-    });
-  }
-
-  template <typename T, typename F>
-  App& put(std::string const& path, F&& func) {
-    auto const names = detail::braced_param_names(path);
-    return put(path, [f = std::forward<F>(func), names](Request const& req, Response& res) {
-      auto const obj = T::parse(req.body());
-      if (!obj) {
-        res.status(422, "Unprocessable Entity").body(R"({"error":"Could not parse request data"})");
-        return;
-      }
-      try {
-        using Traits = detail::fn_traits_t<std::remove_reference_t<F>>;
-        constexpr std::size_t N = Traits::arity;
-        if (N == 0) {
-          detail::send_error(res, 500, "Internal Server Error");
-          return;
-        }
-        using Last = std::remove_cvref_t<typename Traits::template arg<N - 1>>;
-        if constexpr (!std::is_same_v<Last, T>) {
-          detail::send_error(res, 500, "Internal Server Error");
-          return;
-        }
-        if (names.size() != (N - 1)) {
-          detail::send_error(res, 500, "Internal Server Error");
-          return;
-        }
-        auto call = [&](auto&&... path_args) {
-          using Ret = std::invoke_result_t<F, decltype(path_args)..., T const&>;
-          if constexpr (std::is_void_v<Ret>) {
-            f(std::forward<decltype(path_args)>(path_args)..., *obj);
-            detail::send_json(res, 200, "OK", obj->dump());
-          } else {
-            auto out = f(std::forward<decltype(path_args)>(path_args)..., *obj);
-            detail::send_json(res, 200, "OK", detail::to_response_dynamic(out));
-          }
-        };
-        auto invoke_with_tuple = [&]<std::size_t... I>(std::index_sequence<I...>) {
-          std::tuple<std::remove_cvref_t<typename Traits::template arg<I>>...> args;
-          if (!detail::convert_path_args(req, names, args)) {
-            detail::send_error(res, 404, "Not Found");
-            return;
-          }
-          std::apply([&](auto&... xs) { call(xs...); }, args);
-        };
-        invoke_with_tuple(std::make_index_sequence<N - 1>{});
-      } catch (HTTPException const& e) {
-        detail::send_error(res, e.status(), e.detail());
-      } catch (...) {
-        detail::send_error(res, 500, "Internal Server Error");
-      }
-    });
+    };
+    return get(path, std::move(h));
   }
 
   void run(std::string const& host, std::uint16_t port);
