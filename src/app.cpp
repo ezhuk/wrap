@@ -16,7 +16,10 @@ static folly::StringPiece normalize(folly::StringPiece str) {
 
 class RequestHandler final : public proxygen::RequestHandler {
 public:
-  explicit RequestHandler(std::vector<App::Route>* routes) : routes_(routes) {}
+  explicit RequestHandler(
+      std::vector<App::Route>* routes, std::vector<App::Middleware>* middlewares
+  )
+      : routes_(routes), middlewares_(middlewares) {}
 
   void onRequest(std::unique_ptr<proxygen::HTTPMessage> request) noexcept override {
     request_ = std::move(request);
@@ -36,7 +39,11 @@ public:
     if (handler) {
       proxygen::ResponseBuilder builder(downstream_);
       Response response(&builder);
-      handler(request, response);
+      auto next = handler;
+      for (auto iter = middlewares_->rbegin(); iter != middlewares_->rend(); ++iter) {
+        next = (*iter)(std::move(next));
+      }
+      next(request, response);
       if (builder.getHeaders() && builder.getHeaders()->getStatusCode()) {
         builder.sendWithEOM();
       } else {
@@ -141,13 +148,17 @@ private:
 
 private:
   std::vector<App::Route>* routes_;
+  std::vector<App::Middleware>* middlewares_;
   std::unique_ptr<proxygen::HTTPMessage> request_;
   std::unique_ptr<folly::IOBuf> body_;
 };
 
 class HandlerFactory final : public proxygen::RequestHandlerFactory {
 public:
-  explicit HandlerFactory(std::vector<App::Route>* routes) : routes_(routes) {}
+  explicit HandlerFactory(
+      std::vector<App::Route>* routes, std::vector<App::Middleware>* middlewares
+  )
+      : routes_(routes), middlewares_(middlewares) {}
 
   void onServerStart(folly::EventBase*) noexcept override {}
 
@@ -156,11 +167,12 @@ public:
   proxygen::RequestHandler* onRequest(
       proxygen::RequestHandler*, proxygen::HTTPMessage*
   ) noexcept override {
-    return new RequestHandler(routes_);
+    return new RequestHandler(routes_, middlewares_);
   }
 
 private:
   std::vector<App::Route>* routes_;
+  std::vector<App::Middleware>* middlewares_;
 };
 }  // namespace
 
@@ -191,7 +203,7 @@ void App::run() {
   proxygen::HTTPServerOptions options;
   options.threads = options_.threads;
   options.handlerFactories =
-      proxygen::RequestHandlerChain().addThen<HandlerFactory>(&routes_).build();
+      proxygen::RequestHandlerChain().addThen<HandlerFactory>(&routes_, &middlewares_).build();
   server_ = std::make_unique<proxygen::HTTPServer>(std::move(options));
   server_->bind(
       {{folly::SocketAddress(options_.host, options_.port, true),

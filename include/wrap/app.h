@@ -587,6 +587,7 @@ public:
 class App final {
 public:
   using Handler = std::function<void(Request const&, Response&)>;
+  using Middleware = std::function<Handler(Handler)>;
 
   struct Route {
     proxygen::HTTPMethod method;
@@ -596,6 +597,11 @@ public:
 
   explicit App(AppOptions options = {});
   ~App() = default;
+
+  App& use(Middleware middleware) {
+    middlewares_.push_back(std::move(middleware));
+    return *this;
+  }
 
   App& post(std::string const& path, Handler handler);
   App& put(std::string const& path, Handler handler);
@@ -652,5 +658,6 @@ private:
   AppOptions options_;
   std::unique_ptr<proxygen::HTTPServer> server_;
   std::vector<Route> routes_;
+  std::vector<Middleware> middlewares_;
 };
 }  // namespace wrap
