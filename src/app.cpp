@@ -210,7 +210,13 @@ void App::run() {
         proxygen::HTTPServer::Protocol::HTTP}}
   );
   server_->start();
-  server_->stop();
-  server_.reset();
+  stop();
+}
+
+void App::stop() {
+  if (server_) {
+    server_->stop();
+    server_.reset();
+  }
 }
 }  // namespace wrap

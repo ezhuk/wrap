@@ -4,6 +4,7 @@
   "description": "A fast web framework for C++",
   "dependencies": [
     "benchmark",
+    "cpp-httplib",
     "fmt",
     "folly",
     "gtest",
