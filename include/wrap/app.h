@@ -651,8 +651,9 @@ public:
   }
 
   void run(std::string const& host, std::uint16_t port);
-
   void run();
+
+  void stop();
 
 private:
   AppOptions options_;

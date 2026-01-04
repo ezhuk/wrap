@@ -1,4 +1,5 @@
 find_package(GTest CONFIG REQUIRED)
+find_package(httplib CONFIG REQUIRED)
 
 add_executable(wrap_tests
   wrap_test.cpp
@@ -6,6 +7,7 @@ add_executable(wrap_tests
 
 target_link_libraries(wrap_tests PRIVATE
   GTest::gtest_main
+  httplib::httplib
   wrap::wrap
 )
 
