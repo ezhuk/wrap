@@ -18,22 +18,24 @@ protected:
     app_ = std::make_unique<App>();
     thread_ = std::thread([&] { app_->run(host, port); });
     std::this_thread::sleep_for(std::chrono::seconds(1));
+    client_ = std::make_unique<httplib::Client>(host, port);
   }
 
   void TearDown() override {
+    client_.reset();
     app_->stop();
     thread_.join();
   }
 
   std::unique_ptr<App> app_;
   std::thread thread_;
+  std::unique_ptr<httplib::Client> client_;
 };
 
 TEST_F(WrapTest, GetTest) {
   app_->get("/", []() { return "TEST"; });
 
-  httplib::Client client("127.0.0.1", 8081);
-  auto const res = client.Get("/");
+  auto const res = client_->Get("/");
   EXPECT_EQ(res->status, 200);
   EXPECT_EQ(res->body, "TEST");
 }
