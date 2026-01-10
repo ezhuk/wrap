@@ -661,4 +661,15 @@ private:
   std::vector<Route> routes_;
   std::vector<Middleware> middlewares_;
 };
+
+namespace middleware {
+inline App::Middleware logger() {
+  return [](App::Handler next) {
+    return [next = std::move(next)](Request const& req, Response& res) {
+      next(req, res);
+      fmt::print("{} {}\n", req.getMethod(), req.getURL());
+    };
+  };
+}
+}  // namespace middleware
 }  // namespace wrap
