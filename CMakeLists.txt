@@ -62,6 +62,7 @@ endif()
 
 if(BUILD_EXAMPLES)
   add_subdirectory(examples/hello)
+  add_subdirectory(examples/middleware)
 endif()
 
 include(GNUInstallDirs)
