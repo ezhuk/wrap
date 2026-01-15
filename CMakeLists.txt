@@ -64,6 +64,7 @@ if(BUILD_EXAMPLES)
   add_subdirectory(examples/hello)
   add_subdirectory(examples/middleware)
   add_subdirectory(examples/router)
+  add_subdirectory(examples/static)
 endif()
 
 include(GNUInstallDirs)
