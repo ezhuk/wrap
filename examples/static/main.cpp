@@ -1,6 +1,8 @@
 #include <fmt/base.h>
 
 #include "wrap/app.h"
+#include "wrap/middleware.h"
+#include "wrap/static.h"
 
 using namespace wrap;
 
