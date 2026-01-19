@@ -2,7 +2,7 @@
 
 #include "app.h"
 
-namespace wrap{
+namespace wrap {
 namespace middleware {
 inline App::Middleware logger() {
   return [](App::Handler next) {
