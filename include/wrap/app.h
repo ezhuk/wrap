@@ -124,87 +124,66 @@ public:
   App& get(std::string const& path, Handler handler);
 
   template <class F>
-    requires std::invocable<F&>
-  App& get(std::string const& path, F&& func) {
-    Handler h = [f = std::forward<F>(func)](Request const&, Response& res) mutable {
-      try {
-        using Ret = std::invoke_result_t<F&>;
-        if constexpr (std::is_void_v<Ret>) {
-          std::invoke(f);
-          detail::send_no_content(res);
-        } else {
-          auto out = std::invoke(f);
-          detail::send_ok(res, out);
-        }
-      } catch (...) {
-        detail::send_error(res, 500, "Internal Server Error");
-      }
-    };
-    return get(path, std::move(h));
-  }
-
-  template <class F>
-    requires(!std::invocable<F&>) && std::invocable<F&, int>
   App& get(std::string const& path, F&& func) {
     auto const names = detail::braced_param_names(path);
-
     Handler h = [f = std::forward<F>(func), names](Request const& req, Response& res) mutable {
       try {
-        if (names.size() != 1) {
-          detail::send_error(res, 500, "Internal Server Error");
+        auto call_and_respond = [&](auto&&... args) {
+          using Ret = std::invoke_result_t<decltype(f)&, decltype(args)...>;
+          if constexpr (std::is_void_v<Ret>) {
+            std::invoke(f, std::forward<decltype(args)>(args)...);
+            detail::send_no_content(res);
+          } else {
+            auto out = std::invoke(f, std::forward<decltype(args)>(args)...);
+            if constexpr (std::is_convertible_v<decltype(out), std::string_view>) {
+              detail::send_ok(res, std::string_view(out));
+            } else if constexpr (std::is_same_v<
+                                     std::remove_cvref_t<decltype(out)>, folly::dynamic>) {
+              detail::send_json(res, 200, "OK", out);
+            } else {
+              static_assert(sizeof(out) == 0, "Unsupported handler return type");
+            }
+          }
+        };
+        if constexpr (std::invocable<decltype(f)&>) {
+          if (!names.empty()) {
+            detail::send_error(res, 500, "Internal Server Error");
+            return;
+          }
+          call_and_respond();
           return;
         }
-        int v{};
-        if (!detail::convert_param(req.getParam(names[0]), v)) {
-          detail::send_error(res, 404, "Not Found");
+        if constexpr (std::invocable<decltype(f)&, int>) {
+          if (names.size() != 1) {
+            detail::send_error(res, 500, "Internal Server Error");
+            return;
+          }
+          int v{};
+          if (!detail::convert_param(req.getParam(names[0]), v)) {
+            detail::send_error(res, 404, "Not Found");
+            return;
+          }
+          call_and_respond(v);
           return;
         }
-        using Ret = std::invoke_result_t<F&, int>;
-        if constexpr (std::is_void_v<Ret>) {
-          std::invoke(f, v);
-          detail::send_no_content(res);
-        } else {
-          auto out = std::invoke(f, v);
-          detail::send_ok(res, out);
+        if constexpr (std::invocable<decltype(f)&, std::string>) {
+          if (names.size() != 1) {
+            detail::send_error(res, 500, "Internal Server Error");
+            return;
+          }
+          std::string v{};
+          if (!detail::convert_param(req.getParam(names[0]), v)) {
+            detail::send_error(res, 404, "Not Found");
+            return;
+          }
+          call_and_respond(std::move(v));
+          return;
         }
+        detail::send_error(res, 500, "Internal Server Error");
       } catch (...) {
         detail::send_error(res, 500, "Internal Server Error");
       }
     };
-    return get(path, std::move(h));
-  }
-
-  template <class F>
-    requires(!std::invocable<F&>) && std::invocable<F&, std::string>
-  App& get(std::string const& path, F&& func) {
-    auto const names = detail::braced_param_names(path);
-
-    Handler h = [f = std::forward<F>(func), names](Request const& req, Response& res) mutable {
-      try {
-        if (names.size() != 1) {
-          detail::send_error(res, 500, "Internal Server Error");
-          return;
-        }
-
-        std::string v{};
-        if (!detail::convert_param(req.getParam(names[0]), v)) {
-          detail::send_error(res, 404, "Not Found");
-          return;
-        }
-
-        using Ret = std::invoke_result_t<F&, std::string>;
-        if constexpr (std::is_void_v<Ret>) {
-          std::invoke(f, v);
-          detail::send_no_content(res);
-        } else {
-          auto out = std::invoke(f, v);
-          detail::send_ok(res, out);
-        }
-      } catch (...) {
-        detail::send_error(res, 500, "Internal Server Error");
-      }
-    };
-
     return get(path, std::move(h));
   }
 
