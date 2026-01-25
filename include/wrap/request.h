@@ -1,5 +1,6 @@
 #pragma once
 
+#include <folly/json/json.h>
 #include <proxygen/lib/http/HTTPMessage.h>
 
 #include <unordered_map>
