@@ -1,3 +1,5 @@
+find_package(gflags CONFIG REQUIRED)
+
 add_executable(wrap-hello)
 
 target_sources(wrap-hello
@@ -8,6 +10,7 @@ target_sources(wrap-hello
 target_link_libraries(wrap-hello
   PRIVATE
     fmt::fmt
+    gflags::gflags
     wrap::wrap
 )
 
