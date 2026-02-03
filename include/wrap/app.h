@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 
+#include "wrap/handler.h"
+#include "wrap/middleware.h"
 #include "wrap/request.h"
 #include "wrap/response.h"
 
@@ -102,9 +104,6 @@ public:
 
 class App final {
 public:
-  using Handler = std::function<void(Request const&, Response&)>;
-  using Middleware = std::function<Handler(Handler)>;
-
   struct Route {
     proxygen::HTTPMethod method;
     std::string path;

@@ -1,11 +1,13 @@
 #pragma once
 
-#include "app.h"
+#include "wrap/handler.h"
 
 namespace wrap {
+using Middleware = std::function<Handler(Handler)>;
+
 namespace middleware {
-inline App::Middleware logger() {
-  return [](App::Handler next) {
+inline Middleware logger() {
+  return [](Handler next) {
     return [next = std::move(next)](Request const& req, Response& res) {
       next(req, res);
       fmt::print("{} {}\n", req.getMethod(), req.getURL());

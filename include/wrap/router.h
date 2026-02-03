@@ -1,28 +1,29 @@
 #pragma once
 
-#include "app.h"
+#include "wrap/handler.h"
+#include "wrap/middleware.h"
 
 namespace wrap {
 class Router final {
 public:
   Router(App& app, std::string prefix) : app_(app), prefix_(normalize_prefix(std::move(prefix))) {}
 
-  Router& use(App::Middleware middleware) {
+  Router& use(Middleware middleware) {
     app_.use(std::move(middleware));
     return *this;
   }
 
-  Router& get(std::string const& path, App::Handler handler) {
+  Router& get(std::string const& path, Handler handler) {
     app_.get(join(path), std::move(handler));
     return *this;
   }
 
-  Router& post(std::string const& path, App::Handler handler) {
+  Router& post(std::string const& path, Handler handler) {
     app_.post(join(path), std::move(handler));
     return *this;
   }
 
-  Router& put(std::string const& path, App::Handler handler) {
+  Router& put(std::string const& path, Handler handler) {
     app_.put(join(path), std::move(handler));
     return *this;
   }

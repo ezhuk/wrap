@@ -16,9 +16,7 @@ static folly::StringPiece normalize(folly::StringPiece str) {
 
 class RequestHandler final : public proxygen::RequestHandler {
 public:
-  explicit RequestHandler(
-      std::vector<App::Route>* routes, std::vector<App::Middleware>* middlewares
-  )
+  explicit RequestHandler(std::vector<App::Route>* routes, std::vector<Middleware>* middlewares)
       : routes_(routes), middlewares_(middlewares) {}
 
   void onRequest(std::unique_ptr<proxygen::HTTPMessage> request) noexcept override {
@@ -67,7 +65,7 @@ public:
   void onError(proxygen::ProxygenError) noexcept override { delete this; }
 
 private:
-  App::Handler getHandler(Request& request) {
+  Handler getHandler(Request& request) {
     std::vector<folly::StringPiece> parts;
     folly::split('/', normalize(request_->getPathAsStringPiece()), parts);
     for (auto const& route : *routes_) {
@@ -148,16 +146,14 @@ private:
 
 private:
   std::vector<App::Route>* routes_;
-  std::vector<App::Middleware>* middlewares_;
+  std::vector<Middleware>* middlewares_;
   std::unique_ptr<proxygen::HTTPMessage> request_;
   std::unique_ptr<folly::IOBuf> body_;
 };
 
 class HandlerFactory final : public proxygen::RequestHandlerFactory {
 public:
-  explicit HandlerFactory(
-      std::vector<App::Route>* routes, std::vector<App::Middleware>* middlewares
-  )
+  explicit HandlerFactory(std::vector<App::Route>* routes, std::vector<Middleware>* middlewares)
       : routes_(routes), middlewares_(middlewares) {}
 
   void onServerStart(folly::EventBase*) noexcept override {}
@@ -172,7 +168,7 @@ public:
 
 private:
   std::vector<App::Route>* routes_;
-  std::vector<App::Middleware>* middlewares_;
+  std::vector<Middleware>* middlewares_;
 };
 }  // namespace
 
