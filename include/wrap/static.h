@@ -3,7 +3,8 @@
 #include <filesystem>
 #include <fstream>
 
-#include "app.h"
+#include "wrap/app.h"
+#include "wrap/handler.h"
 
 namespace wrap {
 inline std::string mime_type(std::string const& ext) {
@@ -31,7 +32,7 @@ inline std::string mime_type(std::string const& ext) {
   return "application/octet-stream";
 }
 
-inline App::Handler serve_static(std::filesystem::path root) {
+inline Handler serve_static(std::filesystem::path root) {
   return [root = std::move(root)](Request const& req, Response& res) {
     namespace fs = std::filesystem;
     std::string path = req.getURL();
