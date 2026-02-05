@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 
+#include "wrap/app.h"
 #include "wrap/handler.h"
 
 namespace wrap {
