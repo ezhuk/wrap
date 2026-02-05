@@ -1,5 +1,6 @@
 #pragma once
 
+#include "wrap/app.h"
 #include "wrap/handler.h"
 #include "wrap/middleware.h"
 
