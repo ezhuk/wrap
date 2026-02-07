@@ -2,6 +2,7 @@
 
 #include <folly/json/json.h>
 #include <proxygen/httpserver/HTTPServer.h>
+#include <proxygen/httpserver/RequestHandlerFactory.h>
 
 #include <memory>
 #include <vector>
@@ -113,6 +114,11 @@ public:
   explicit App(AppOptions options = {});
   ~App() = default;
 
+  App& use(std::unique_ptr<proxygen::RequestHandlerFactory> filter) {
+    filters_.push_back(std::move(filter));
+    return *this;
+  }
+
   App& use(Middleware middleware) {
     middlewares_.push_back(std::move(middleware));
     return *this;
@@ -195,6 +201,7 @@ private:
   AppOptions options_;
   std::unique_ptr<proxygen::HTTPServer> server_;
   std::vector<Route> routes_;
+  std::vector<std::unique_ptr<proxygen::RequestHandlerFactory>> filters_;
   std::vector<Middleware> middlewares_;
 };
 }  // namespace wrap
