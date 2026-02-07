@@ -198,8 +198,14 @@ void App::run(std::string const& host, std::uint16_t port) {
 void App::run() {
   proxygen::HTTPServerOptions options;
   options.threads = options_.threads;
-  options.handlerFactories =
-      proxygen::RequestHandlerChain().addThen<HandlerFactory>(&routes_, &middlewares_).build();
+
+  proxygen::RequestHandlerChain chain;
+  for (auto& filter : filters_) {
+    chain.addThen(std::move(filter));
+  }
+  chain.addThen<HandlerFactory>(&routes_, &middlewares_);
+  options.handlerFactories = std::move(chain).build();
+
   server_ = std::make_unique<proxygen::HTTPServer>(std::move(options));
   server_->bind(
       {{folly::SocketAddress(options_.host, options_.port, true),
