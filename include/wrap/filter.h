@@ -5,6 +5,8 @@
 #include <proxygen/httpserver/RequestHandlerFactory.h>
 
 #include <memory>
+#include <string>
+#include <tuple>
 
 namespace wrap::filter {
 class TraceFilter final : public proxygen::Filter {
@@ -24,24 +26,28 @@ private:
   inline static std::atomic<std::uint64_t> counter_{1};
 };
 
-class TraceFilterFactory final : public proxygen::RequestHandlerFactory {
+template <class T, class... U>
+class FilterFactory final : public proxygen::RequestHandlerFactory {
 public:
-  explicit TraceFilterFactory(std::string prefix = {}) : prefix_(std::move(prefix)) {}
+  explicit FilterFactory(U... args) : args_(std::move(args)...) {}
 
   void onServerStart(folly::EventBase*) noexcept override {}
+
   void onServerStop() noexcept override {}
 
   proxygen::RequestHandler* onRequest(
       proxygen::RequestHandler* h, proxygen::HTTPMessage*
   ) noexcept override {
-    return new TraceFilter(h, prefix_);
+    return std::apply(
+        [&](auto&... xs) -> proxygen::RequestHandler* { return new T(h, xs...); }, args_
+    );
   }
 
 private:
-  std::string prefix_;
+  std::tuple<U...> args_;
 };
 
 inline std::unique_ptr<proxygen::RequestHandlerFactory> trace(std::string prefix = {}) {
-  return std::make_unique<wrap::filter::TraceFilterFactory>(std::move(prefix));
+  return std::make_unique<FilterFactory<TraceFilter, std::string>>(std::move(prefix));
 }
 }  // namespace wrap::filter
