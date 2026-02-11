@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
 
   app.use(middleware::logger());
 
-  app.get("/", serve_static("./public"));
+  app.get("/{path:string}", serve_static("./public"));
 
   app.run("0.0.0.0", 8080);
   return 0;
