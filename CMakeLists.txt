@@ -15,6 +15,7 @@ option(BUILD_TESTS "Build tests" ON)
 find_package(fmt CONFIG REQUIRED)
 find_package(folly CONFIG REQUIRED)
 find_package(proxygen CONFIG REQUIRED)
+find_package(wangle CONFIG REQUIRED)
 
 add_library(wrap)
 
@@ -42,6 +43,7 @@ target_link_libraries(wrap
     Folly::folly
   PRIVATE
     proxygen::proxygenhttpserver
+    wangle::wangle
 )
 
 set_target_properties(wrap PROPERTIES
