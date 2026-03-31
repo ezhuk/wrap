@@ -1,0 +1,17 @@
+module(
+    name = "wrap",
+    version = "0.1.0",
+)
+
+bazel_dep(name = "rules_cc", version = "0.2.17")
+
+bazel_dep(name = "fmt", version = "12.1.0")
+bazel_dep(name = "folly", version = "2025.01.13.00.bcr.6")
+bazel_dep(name = "proxygen", version = "2025.02.10.00.bcr.1")
+bazel_dep(name = "wangle", version = "2025.02.10.00.bcr.2")
+
+git_override(
+    module_name = "folly",
+    remote = "https://github.com/facebook/folly.git",
+    commit = "5ae1dd9bb1f7da5077b3c7fd5f8a0f193eaba35a",
+)
