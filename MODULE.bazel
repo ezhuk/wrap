@@ -8,10 +8,36 @@ bazel_dep(name = "rules_cc", version = "0.2.17")
 bazel_dep(name = "fmt", version = "12.1.0")
 bazel_dep(name = "folly", version = "2025.01.13.00.bcr.6")
 bazel_dep(name = "proxygen", version = "2025.02.10.00.bcr.1")
-bazel_dep(name = "wangle", version = "2025.02.10.00.bcr.2")
 
-git_override(
-    module_name = "folly",
-    remote = "https://github.com/facebook/folly.git",
-    commit = "5ae1dd9bb1f7da5077b3c7fd5f8a0f193eaba35a",
+archive_override(
+    module_name = "brotli",
+    urls = ["https://github.com/google/brotli/archive/refs/heads/master.tar.gz"],
+    strip_prefix = "brotli-master",
+    integrity = "sha256-g9qfnFCLV2tY8nT8gH+182t0JTAMFh39ra+IvlZZ2+c=",
+)
+
+archive_override(
+    module_name = "double-conversion",
+    urls = ["https://github.com/google/double-conversion/archive/refs/heads/master.tar.gz"],
+    strip_prefix = "double-conversion-master",
+    integrity = "sha256-tsIR+7cJBCWz3VSa4VHBKsCJDA0lnkK5eoKLn5+G8zA=",
+)
+
+archive_override(
+    module_name = "proxygen",
+    urls = ["https://github.com/facebook/proxygen/archive/refs/tags/v2026.03.30.00.tar.gz"],
+    strip_prefix = "proxygen-2026.03.30.00",
+    sha256 = "bb60ec2661650c11bac73879d9e6ae55db913fd7c7a40db5af8c657d05fde896",
+    patches = ["//build/proxygen:proxygen-bazel.patch"],
+    patch_strip = 1,
+)
+
+single_version_override(
+    module_name = "snappy",
+    version = "1.2.2.bcr.3",
+)
+
+single_version_override(
+    module_name = "liburing",
+    version = "2.14",
 )
