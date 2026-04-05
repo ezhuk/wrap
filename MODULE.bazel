@@ -24,6 +24,15 @@ archive_override(
 )
 
 archive_override(
+    module_name = "fizz",
+    urls = ["https://github.com/facebookincubator/fizz/archive/refs/tags/v2026.03.30.00.tar.gz"],
+    strip_prefix = "fizz-2026.03.30.00",
+    integrity = "sha256-zPaGw90ANwEsxibgEn33bM1+vYygSZzFUMD0k4LbtTM=",
+    patches = ["//build/fizz:fizz-bazel.patch"],
+    patch_strip = 1,
+)
+
+archive_override(
     module_name = "mvfst",
     urls = ["https://github.com/facebook/mvfst/archive/refs/tags/v2026.03.30.00.tar.gz"],
     strip_prefix = "mvfst-2026.03.30.00",
@@ -36,7 +45,7 @@ archive_override(
     module_name = "proxygen",
     urls = ["https://github.com/facebook/proxygen/archive/refs/tags/v2026.03.30.00.tar.gz"],
     strip_prefix = "proxygen-2026.03.30.00",
-    sha256 = "bb60ec2661650c11bac73879d9e6ae55db913fd7c7a40db5af8c657d05fde896",
+    integrity = "sha256-u2DsJmFlDBG6xzh52eauVduRP9fHpA21r4xlfQX96JY=",
     patches = ["//build/proxygen:proxygen-bazel.patch"],
     patch_strip = 1,
 )
