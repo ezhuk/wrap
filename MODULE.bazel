@@ -24,6 +24,14 @@ archive_override(
 )
 
 archive_override(
+    module_name = "mvfst",
+    urls = ["https://github.com/facebook/mvfst/archive/refs/tags/v2026.03.30.00.tar.gz"],
+    strip_prefix = "mvfst-v2026.03.30.00",
+    patches = ["//build/mvfst:mvfst-bazel.patch"],
+    patch_strip = 1,
+)
+
+archive_override(
     module_name = "proxygen",
     urls = ["https://github.com/facebook/proxygen/archive/refs/tags/v2026.03.30.00.tar.gz"],
     strip_prefix = "proxygen-2026.03.30.00",
