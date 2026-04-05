@@ -33,6 +33,15 @@ archive_override(
 )
 
 archive_override(
+    module_name = "folly",
+    urls = ["https://github.com/facebook/folly/archive/refs/tags/v2026.03.30.00.tar.gz"],
+    strip_prefix = "folly-2026.03.30.00",
+    integrity = "sha256-iAakV05bJsEvzvTJOOz7zlM4kHmCIAouhbWHHtf0NyM=",
+    patches = ["//build/folly:folly-bazel.patch"],
+    patch_strip = 1,
+)
+
+archive_override(
     module_name = "mvfst",
     urls = ["https://github.com/facebook/mvfst/archive/refs/tags/v2026.03.30.00.tar.gz"],
     strip_prefix = "mvfst-2026.03.30.00",
