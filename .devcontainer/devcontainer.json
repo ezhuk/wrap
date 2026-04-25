@@ -2,7 +2,8 @@
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "mounts": [
     "source=bazel-cache,target=/home/vscode/.cache/bazel,type=volume",
-    "source=bazelisk-cache,target=/home/vscode/.cache/bazelisk,type=volume"
+    "source=bazelisk-cache,target=/home/vscode/.cache/bazelisk,type=volume",
+    "source=vcpkg-cache,target=/home/vscode/.cache/vcpkg,type=volume"
   ],
   "features": {
     "ghcr.io/ezhuk/devcontainer-features/bazel:1": {},
