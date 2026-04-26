@@ -4,74 +4,79 @@ module(
 )
 
 bazel_dep(name = "rules_cc", version = "0.2.17")
-
 bazel_dep(name = "fmt", version = "12.1.0")
 bazel_dep(name = "folly", version = "2025.01.13.00.bcr.6")
 bazel_dep(name = "proxygen", version = "2025.02.10.00.bcr.1")
 
 archive_override(
     module_name = "brotli",
-    urls = ["https://github.com/google/brotli/archive/refs/heads/master.tar.gz"],
-    strip_prefix = "brotli-master",
-    integrity = "sha256-g9qfnFCLV2tY8nT8gH+182t0JTAMFh39ra+IvlZZ2+c=",
+    integrity = "sha256-Ho1P2MooJUBs4HhZrwGdOoEreeBVLjwibVXIZlELjTE=",
+    strip_prefix = "brotli-ab685df8343d8046226ece980408e958c10f9085",
+    urls = ["https://github.com/google/brotli/archive/ab685df8343d8046226ece980408e958c10f9085.tar.gz"],
 )
 
 archive_override(
     module_name = "double-conversion",
-    urls = ["https://github.com/google/double-conversion/archive/refs/heads/master.tar.gz"],
-    strip_prefix = "double-conversion-master",
-    integrity = "sha256-tsIR+7cJBCWz3VSa4VHBKsCJDA0lnkK5eoKLn5+G8zA=",
+    integrity = "sha256-djd6N2u/s4PxA54Veusa/jXRLX56MdBpdB2IJ3dorbg=",
+    strip_prefix = "double-conversion-1f354551c9bd1d287ecccb3fdb5c9f09c77b9c87",
+    urls = ["https://github.com/google/double-conversion/archive/1f354551c9bd1d287ecccb3fdb5c9f09c77b9c87.tar.gz"],
 )
 
 archive_override(
     module_name = "fizz",
-    urls = ["https://github.com/facebookincubator/fizz/archive/refs/tags/v2026.03.30.00.tar.gz"],
-    strip_prefix = "fizz-2026.03.30.00",
-    integrity = "sha256-zPaGw90ANwEsxibgEn33bM1+vYygSZzFUMD0k4LbtTM=",
-    patches = ["//build/fizz:fizz-bazel.patch"],
+    integrity = "sha256-fLIzCK2zQTO3BqRY59taW/TQPuCmg+tfrwYiDaFUOUU=",
     patch_strip = 1,
+    patches = ["//build/fizz:fizz-bazel.patch"],
+    strip_prefix = "fizz-2026.04.20.00",
+    urls = ["https://github.com/facebookincubator/fizz/archive/refs/tags/v2026.04.20.00.tar.gz"],
 )
 
 archive_override(
     module_name = "folly",
-    urls = ["https://github.com/facebook/folly/archive/refs/tags/v2026.03.30.00.tar.gz"],
-    strip_prefix = "folly-2026.03.30.00",
-    integrity = "sha256-iAakV05bJsEvzvTJOOz7zlM4kHmCIAouhbWHHtf0NyM=",
-    patches = ["//build/folly:folly-bazel.patch"],
+    integrity = "sha256-o4ZY/kLO8zxDUg1lUGidCABmaKbI66prAjyejCkIeMU=",
     patch_strip = 1,
+    patches = ["//build/folly:folly-bazel.patch"],
+    strip_prefix = "folly-2026.04.20.00",
+    urls = ["https://github.com/facebook/folly/archive/refs/tags/v2026.04.20.00.tar.gz"],
+)
+
+archive_override(
+    module_name = "liburing",
+    integrity = "sha256-X4CWQQiYHGrZecc18LSHfV9JkUwqBi+OiCgvJr9h3gw=",
+    patch_strip = 1,
+    patches = ["//build/liburing:liburing-bazel.patch"],
+    strip_prefix = "liburing-liburing-2.14",
+    urls = ["https://github.com/axboe/liburing/archive/refs/tags/liburing-2.14.tar.gz"],
 )
 
 archive_override(
     module_name = "mvfst",
-    urls = ["https://github.com/facebook/mvfst/archive/refs/tags/v2026.03.30.00.tar.gz"],
-    strip_prefix = "mvfst-2026.03.30.00",
-    integrity = "sha256-sofHxbMXQwqokMXpUt3gIPohIETSGHVv5Qyq3VksV4A=",
-    patches = ["//build/mvfst:mvfst-bazel.patch"],
+    integrity = "sha256-RG1bQV/xr0SYwRa2cHECiEJvbHEk+Vp4plEHf1wT30w=",
     patch_strip = 1,
+    patches = ["//build/mvfst:mvfst-bazel.patch"],
+    strip_prefix = "mvfst-2026.04.20.00",
+    urls = ["https://github.com/facebook/mvfst/archive/refs/tags/v2026.04.20.00.tar.gz"],
 )
 
 archive_override(
     module_name = "proxygen",
-    urls = ["https://github.com/facebook/proxygen/archive/refs/tags/v2026.03.30.00.tar.gz"],
-    strip_prefix = "proxygen-2026.03.30.00",
-    integrity = "sha256-u2DsJmFlDBG6xzh52eauVduRP9fHpA21r4xlfQX96JY=",
+    integrity = "sha256-0lCGR7Ub+zi+zUCUpnS43L+qWtKvzhsad7wSad91DBE=",
+    patch_strip = 1,
     patches = ["//build/proxygen:proxygen-bazel.patch"],
-    patch_strip = 1,
+    strip_prefix = "proxygen-2026.04.20.00",
+    urls = ["https://github.com/facebook/proxygen/archive/refs/tags/v2026.04.20.00.tar.gz"],
 )
 
-single_version_override(
+archive_override(
     module_name = "range-v3",
-    version = "0.12.0",
-    patches = ["//build/range-v3:range-v3-bazel.patch"],
-    patch_strip = 1,
+    integrity = "sha256-oCeouBjV6iOx6XzHoSKXiLgGEsOmrAYO2nzNkJtSlgY=",
+    strip_prefix = "range-v3-108f93c279c8f9cec175dac361084983d0176e99",
+    urls = ["https://github.com/ericniebler/range-v3/archive/108f93c279c8f9cec175dac361084983d0176e99.tar.gz"],
 )
 
-single_version_override(
+archive_override(
     module_name = "snappy",
-    version = "1.2.2.bcr.3",
-)
-
-single_version_override(
-    module_name = "liburing",
-    version = "2.14",
+    integrity = "sha256-Q9Zfo4YcQFTz4M5DaPoDD8P/mnrNJoGjrkE8YZzrggA=",
+    strip_prefix = "snappy-6281a07b7e08629884ec93a89fea6e05c62e599c",
+    urls = ["https://github.com/google/snappy/archive/6281a07b7e08629884ec93a89fea6e05c62e599c.tar.gz"],
 )
