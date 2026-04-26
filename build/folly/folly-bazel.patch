@@ -95,6 +95,14 @@ index 000000000..15ca8558a
 +# TODO(kgk): Enable once @libaio is added to bcr. See:
 +# https://github.com/bazelbuild/bazel-central-registry/issues/3756
 +# bazel_dep(name = "libaio", version = "")
+diff --git a/bzl/BUILD.bazel b/bzl/BUILD.bazel
+new file mode 100644
+index 000000000..77bcf45e4
+--- /dev/null
++++ b/bzl/BUILD.bazel
+@@ -0,0 +1,2 @@
++exports_files(glob(["*.bzl"]))
++
 diff --git a/bzl/cpp_library.bzl b/bzl/cpp_library.bzl
 new file mode 100644
 index 000000000..9e3cf50ff
