@@ -11,15 +11,15 @@ cc_library(
     hdrs = glob([
         "include/**/*.h",
     ]),
-    includes = [
-        "include",
-    ],
     defines = [
         'WRAP_VERSION="0.1.0"',
     ],
+    includes = [
+        "include",
+    ],
     deps = [
-        "@fmt//:fmt",
+        "@fmt",
         "@folly//folly:json",
-        "@proxygen//:httpserver",
+        "@proxygen//proxygen:httpserver",
     ],
 )

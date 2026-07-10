@@ -1,1 +1,4 @@
+common --registry=https://ezhuk.github.io/bazel-registry/
+common --registry=https://bcr.bazel.build/
 build --cxxopt=-std=c++20
+build --host_cxxopt=-std=c++20
