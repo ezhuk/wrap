@@ -9,30 +9,34 @@ on:
   push:
     branches: [main]
 
-jobs:
-  build:
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+      - uses: pre-commit/action@v3.0.1
+
+  build-bazel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          bazel build //:wrap
+          bazel test //tests/... --test_output=errors
+
+  build-cmake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
       - run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y autoconf autoconf-archive automake cmake libtool pkg-config
-      - uses: astral-sh/setup-uv@v7
+          sudo apt-get install --no-install-recommends -y autoconf autoconf-archive automake libtool pkg-config
       - uses: lukka/get-cmake@latest
       - uses: lukka/run-vcpkg@v11
       - run: |
           cmake --preset ninja-multi-vcpkg
-      - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: >-
-            --from-ref ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD~1' }}
-            --to-ref ${{ github.sha }}
-            --show-diff-on-failure
-      - run: |
           cmake --build --preset test
-          ctest --preset test
+          ctest --preset test --output-on-failure
