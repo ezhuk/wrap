@@ -21,5 +21,6 @@ cc_library(
         "@fmt",
         "@folly//folly:json",
         "@proxygen//proxygen:httpserver",
+        "@proxygen//proxygen/httpserver/filters:direct_response_handler",
     ],
 )
