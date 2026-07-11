@@ -1,0 +1,11 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "wrap_test",
+    srcs = ["wrap_test.cpp"],
+    deps = [
+        "//:wrap",
+        "@cpp-httplib//:httplib",
+        "@googletest//:gtest_main",
+    ],
+)
