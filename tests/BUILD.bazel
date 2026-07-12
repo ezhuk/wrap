@@ -1,5 +1,9 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
+package(
+    default_package_metadata = ["//:license"],
+)
+
 cc_test(
     name = "wrap_test",
     srcs = ["wrap_test.cpp"],
