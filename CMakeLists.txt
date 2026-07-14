@@ -10,7 +10,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(BUILD_EXAMPLES "Build examples" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-option(BUILD_TESTS "Build tests" ON)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(folly CONFIG REQUIRED)
@@ -53,8 +52,9 @@ set_target_properties(wrap PROPERTIES
 
 add_library(wrap::wrap ALIAS wrap)
 
-if(BUILD_TESTS)
-  enable_testing()
+include(CTest)
+
+if(BUILD_TESTING)
   add_subdirectory(tests)
 endif()
 
