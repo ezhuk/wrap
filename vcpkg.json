@@ -11,5 +11,5 @@
     "gtest",
     "proxygen"
   ],
-  "builtin-baseline": "f87344cac03158cbf1467264565f1fd36b382a24"
+  "builtin-baseline": "9e593bb18ea69cc5095e012465dcd675a822ed0d"
 }
