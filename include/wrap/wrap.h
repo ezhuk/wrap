@@ -1,5 +1,7 @@
 #pragma once
 
-namespace wrap {
-int foo();
-}  // namespace wrap
+#include "wrap/app.h"
+#include "wrap/handler.h"
+#include "wrap/middleware.h"
+#include "wrap/request.h"
+#include "wrap/response.h"

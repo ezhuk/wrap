@@ -1,20 +1,27 @@
-#include <fmt/base.h>
-#include <gflags/gflags.h>
+#include <folly/coro/Task.h>
 
-#include "wrap/app.h"
+#include <wrap/wrap.h>
 
-using namespace wrap;
 
-DEFINE_string(host, "0.0.0.0", "Host to listen on");
-DEFINE_int32(port, 8080, "Port to listen on");
+int main() {
+  wrap::App app;
 
-int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  app.use(
+      wrap::middleware::header(
+          "Server",
+          "wrap"));
 
-  App app;
+  app.get(
+      "/",
+      [](wrap::Request const&)
+          -> folly::coro::Task<
+              wrap::Response> {
+        co_return
+            wrap::Response::text(
+                "Hello, world!\n");
+      });
 
-  app.get("/", []() { return R"({"message":"Hello, world!"})"; });
+  app.run();
 
-  app.run(FLAGS_host, FLAGS_port);
   return 0;
 }

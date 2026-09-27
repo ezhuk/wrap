@@ -5,11 +5,10 @@ package(
 )
 
 cc_binary(
-    name = "wrap-hello",
+    name = "hello",
     srcs = ["main.cpp"],
     deps = [
         "//:wrap",
-        "@fmt",
-        "@gflags",
+        "@folly//folly/coro:task",
     ],
 )

@@ -1,6 +1,10 @@
 #pragma once
 
-#include <atomic>
+#include <folly/coro/Task.h>
+
+#include <functional>
+#include <string>
+#include <utility>
 
 #include "wrap/handler.h"
 
@@ -8,23 +12,15 @@ namespace wrap {
 using Middleware = std::function<Handler(Handler)>;
 
 namespace middleware {
-inline Middleware logger() {
-  return [](Handler next) {
-    return [next = std::move(next)](Request const& req, Response& res) {
-      next(req, res);
-      fmt::print("{} {}\n", req.getMethod(), req.getURL());
-    };
-  };
-}
+inline Middleware header(std::string name, std::string value) {
+  return [name = std::move(name), value = std::move(value)](Handler next) mutable {
+    return [next = std::move(next), name = std::move(name),
+            value = std::move(value)](Request const& request) -> folly::coro::Task<Response> {
+      auto response = co_await next(request);
 
-inline Middleware tracer(std::string prefix = {}) {
-  static std::atomic<uint64_t> counter{1};
-  return [prefix = std::move(prefix)](Handler next) {
-    return [next = std::move(next), prefix](Request const& req, Response& res) {
-      res.header(
-          "X-Request-Id", prefix + std::to_string(counter.fetch_add(1, std::memory_order_relaxed))
-      );
-      next(req, res);
+      response.header(name, value);
+
+      co_return response;
     };
   };
 }

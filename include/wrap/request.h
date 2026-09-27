@@ -1,41 +1,27 @@
 #pragma once
 
-#include <folly/json/json.h>
-#include <proxygen/lib/http/HTTPMessage.h>
-
-#include <unordered_map>
+#include <string>
+#include <string_view>
+#include <utility>
 
 namespace wrap {
 class Request final {
 public:
-  Request(proxygen::HTTPMessage const* msg, folly::IOBuf* body) : msg_(msg), body_(body) {}
-  ~Request() = default;
+  Request(std::string method, std::string path)
+      : method_(std::move(method)), path_(std::move(path)) {}
 
-  std::string getMethod() const { return msg_->getMethodString(); }
-
-  std::string getURL() const { return msg_->getURL(); }
-
-  std::string getParam(std::string const& name) const {
-    auto iter = params_.find(name);
-    if (params_.end() != iter) {
-      return iter->second;
-    }
-    return "";
+  [[nodiscard]]
+  std::string_view method() const noexcept {
+    return method_;
   }
 
-  void setParam(std::string const& name, std::string const& data) { params_[name] = data; }
-
-  std::string getQueryParam(std::string const& name) const {
-    return msg_->getDecodedQueryParam(name);
+  [[nodiscard]]
+  std::string_view path() const noexcept {
+    return path_;
   }
-
-  std::string body() const { return body_ ? body_->toString() : std::string{}; }
-
-  folly::dynamic json() const { return folly::parseJson(body()); }
 
 private:
-  proxygen::HTTPMessage const* msg_;
-  folly::IOBuf* body_;
-  std::unordered_map<std::string, std::string> params_;
+  std::string method_;
+  std::string path_;
 };
 }  // namespace wrap
