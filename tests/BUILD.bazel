@@ -10,6 +10,7 @@ cc_test(
     deps = [
         "//:wrap",
         "@cpp-httplib//:httplib",
+        "@folly//folly/coro:task",
         "@googletest//:gtest_main",
     ],
 )

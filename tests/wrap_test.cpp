@@ -1,41 +1,68 @@
+#include <folly/coro/Task.h>
 #include <gtest/gtest.h>
 #include <httplib.h>
+#include <wrap/wrap.h>
 
 #include <chrono>
-#include <memory>
+#include <exception>
 #include <thread>
 
-#include "wrap/app.h"
+namespace {
+using namespace std::chrono_literals;
 
-using namespace wrap;
+TEST(WrapTest, GetRoot) {
+  constexpr char host[] = "127.0.0.1";
 
-class WrapTest : public testing::Test {
-protected:
-  static constexpr char const* host = "127.0.0.1";
-  static constexpr int port = 8081;
+  constexpr int port = 18081;
 
-  void SetUp() override {
-    app_ = std::make_unique<App>();
-    thread_ = std::thread([&] { app_->run(host, port); });
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    client_ = std::make_unique<httplib::Client>(host, port);
+  wrap::App app({
+      .host = host,
+      .port = port,
+      .threads = 1,
+  });
+
+  app.use(wrap::middleware::header("X-Wrap-Test", "1"));
+
+  app.get("/", [](wrap::Request const&) -> folly::coro::Task<wrap::Response> {
+    co_return wrap::Response::text("Hello, world!\n");
+  });
+
+  std::exception_ptr serverError;
+
+  std::thread serverThread([&] {
+    try {
+      app.run();
+    } catch (...) {
+      serverError = std::current_exception();
+    }
+  });
+
+  httplib::Client client(host, port);
+
+  std::shared_ptr<httplib::Response> response;
+
+  for (int attempt = 0; attempt < 100; ++attempt) {
+    response = client.Get("/");
+
+    if (response) {
+      break;
+    }
+
+    std::this_thread::sleep_for(10ms);
   }
 
-  void TearDown() override {
-    client_.reset();
-    app_->stop();
-    thread_.join();
-  }
+  app.stop();
 
-  std::unique_ptr<App> app_;
-  std::thread thread_;
-  std::unique_ptr<httplib::Client> client_;
-};
+  serverThread.join();
 
-TEST_F(WrapTest, GetTest) {
-  app_->get("/", []() { return "TEST"; });
+  EXPECT_EQ(serverError, nullptr);
 
-  auto const res = client_->Get("/");
-  EXPECT_EQ(res->status, 200);
-  EXPECT_EQ(res->body, "TEST");
+  ASSERT_NE(response, nullptr);
+
+  EXPECT_EQ(response->status, 200);
+
+  EXPECT_EQ(response->body, "Hello, world!\n");
+
+  EXPECT_EQ(response->get_header_value("X-Wrap-Test"), "1");
 }
+}  // namespace
