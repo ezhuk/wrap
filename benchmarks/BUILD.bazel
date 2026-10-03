@@ -1,14 +1,13 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
-package(
-    default_package_metadata = ["//:license"],
-)
+package(default_package_metadata = ["//:license"])
 
 cc_binary(
     name = "wrap_bench",
     srcs = ["main.cpp"],
     deps = [
         "//:wrap",
-        "@google_benchmark//:benchmark",
+        "@cpp-httplib//:httplib",
+        "@google_benchmark//:benchmark_main",
     ],
 )
