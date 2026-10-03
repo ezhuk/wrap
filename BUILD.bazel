@@ -19,10 +19,6 @@ cc_library(
     srcs = ["src/app.cpp"],
     hdrs = [
         "include/wrap/app.h",
-        "include/wrap/handler.h",
-        "include/wrap/middleware.h",
-        "include/wrap/request.h",
-        "include/wrap/response.h",
         "include/wrap/wrap.h",
     ],
     includes = ["include"],

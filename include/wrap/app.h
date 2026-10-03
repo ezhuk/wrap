@@ -1,26 +1,23 @@
 #pragma once
 
+#include <folly/coro/Task.h>
+
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 
-#include "wrap/handler.h"
-#include "wrap/middleware.h"
+namespace proxygen::coro {
+class HTTPServer;
+}
 
 namespace wrap {
-struct AppOptions {
-  std::string host{"0.0.0.0"};
-
-  std::uint16_t port{8080};
-
-  std::size_t threads{1};
-};
-
 class App final {
 public:
-  explicit App(AppOptions options = {});
+  using GetHandler = std::function<folly::coro::Task<std::string>()>;
 
+  explicit App(std::uint16_t port = 8080, std::size_t threads = 1);
   ~App();
 
   App(App const&) = delete;
@@ -29,17 +26,19 @@ public:
   App(App&&) = delete;
   App& operator=(App&&) = delete;
 
-  App& use(Middleware middleware);
-
-  App& get(std::string path, Handler handler);
+  App& get(std::string path, GetHandler handler);
 
   void run();
-
   void stop();
 
 private:
-  struct Impl;
+  class Handler;
 
-  std::unique_ptr<Impl> impl_;
+  std::uint16_t port_;
+  std::size_t threads_;
+
+  std::shared_ptr<Handler> handler_;
+
+  std::unique_ptr<proxygen::coro::HTTPServer> server_;
 };
 }  // namespace wrap
