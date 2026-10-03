@@ -1,6 +1,5 @@
 #include "wrap/app.h"
 
-#include <folly/SocketAddress.h>
 #include <proxygen/lib/http/HTTPMessage.h>
 #include <proxygen/lib/http/coro/HTTPCoroSession.h>
 #include <proxygen/lib/http/coro/HTTPFixedSource.h>
@@ -8,11 +7,23 @@
 
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace wrap {
 class App::Handler final : public proxygen::coro::HTTPHandler {
 public:
-  explicit Handler(GetHandler handler) : handler_(std::move(handler)) {}
+  void addRoute(std::string path, GetHandler handler) {
+    for (auto const& route : routes_) {
+      if (route.path == path) {
+        throw std::invalid_argument("duplicate GET route: " + path);
+      }
+    }
+
+    routes_.push_back({
+        .path = std::move(path),
+        .handler = std::move(handler),
+    });
+  }
 
   folly::coro::Task<proxygen::coro::HTTPSourceHolder> handleRequest(
       folly::EventBase*, proxygen::coro::HTTPSessionContextPtr,
@@ -26,38 +37,43 @@ public:
       request.stopReading();
     }
 
-    if (message.getMethod() != proxygen::HTTPMethod::GET || message.getPathAsStringPiece() != "/") {
+    if (message.getMethod() != proxygen::HTTPMethod::GET) {
       co_return proxygen::coro::HTTPFixedSource::makeFixedResponse(404, "Not Found\n");
     }
 
-    auto body = co_await handler_();
+    auto path = message.getPathAsStringPiece();
 
-    co_return proxygen::coro::HTTPFixedSource::makeFixedResponse(200, std::move(body));
+    for (auto const& route : routes_) {
+      if (path == route.path) {
+        auto body = co_await route.handler();
+
+        co_return proxygen::coro::HTTPFixedSource::makeFixedResponse(200, std::move(body));
+      }
+    }
+
+    co_return proxygen::coro::HTTPFixedSource::makeFixedResponse(404, "Not Found\n");
   }
 
 private:
-  GetHandler handler_;
+  struct Route {
+    std::string path;
+    GetHandler handler;
+  };
+
+  std::vector<Route> routes_;
 };
 
-App::App(std::uint16_t port, std::size_t threads) : port_(port), threads_(threads) {}
+App::App(std::uint16_t port, std::size_t threads)
+    : port_(port), threads_(threads), handler_(std::make_shared<Handler>()) {}
 
 App::~App() { stop(); }
 
 App& App::get(std::string path, GetHandler handler) {
-  if (path != "/") {
-    throw std::invalid_argument("only GET / is currently supported");
-  }
-
-  handler_ = std::make_shared<Handler>(std::move(handler));
-
+  handler_->addRoute(std::move(path), std::move(handler));
   return *this;
 }
 
 void App::run() {
-  if (!handler_) {
-    throw std::logic_error("no GET / handler registered");
-  }
-
   proxygen::coro::HTTPServer::Config config;
   config.socketConfig.bindAddress.setFromLocalPort(port_);
   config.numIOThreads = threads_;

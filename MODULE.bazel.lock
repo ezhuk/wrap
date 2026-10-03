@@ -607,7 +607,7 @@
     "https://ezhuk.github.io/bazel-registry/modules/protobuf/32.1/MODULE.bazel": "not found",
     "https://ezhuk.github.io/bazel-registry/modules/protobuf/33.4/MODULE.bazel": "not found",
     "https://ezhuk.github.io/bazel-registry/modules/proxygen/2026.08.24.00/MODULE.bazel": "42ad546c1af3468b13b1e528c7e9691f634217b15184bae1d27a45e48a3ce942",
-    "https://ezhuk.github.io/bazel-registry/modules/proxygen/2026.08.24.00/source.json": "6e069fcad6d9f6ba93f7e85bce008e90315e27319420a2fe2d42402ee0ec85d4",
+    "https://ezhuk.github.io/bazel-registry/modules/proxygen/2026.08.24.00/source.json": "785124429348dd8a9d6e95913b92979f5a90d0e28d96b76248fb29eb75d1ba00",
     "https://ezhuk.github.io/bazel-registry/modules/pybind11_bazel/2.11.1/MODULE.bazel": "not found",
     "https://ezhuk.github.io/bazel-registry/modules/pybind11_bazel/2.12.0/MODULE.bazel": "not found",
     "https://ezhuk.github.io/bazel-registry/modules/pybind11_bazel/2.13.6/MODULE.bazel": "not found",

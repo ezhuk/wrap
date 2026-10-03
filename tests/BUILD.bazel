@@ -1,8 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
-package(
-    default_package_metadata = ["//:license"],
-)
+package(default_package_metadata = ["//:license"])
 
 cc_test(
     name = "wrap_test",
@@ -10,7 +8,6 @@ cc_test(
     deps = [
         "//:wrap",
         "@cpp-httplib//:httplib",
-        "@folly//folly/coro:task",
         "@googletest//:gtest_main",
     ],
 )
