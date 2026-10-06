@@ -1,20 +1,15 @@
-#include <fmt/base.h>
-#include <gflags/gflags.h>
+#include <wrap/wrap.h>
 
-#include "wrap/app.h"
+#include <string>
 
-using namespace wrap;
+int main() {
+  wrap::App app(8080, 1);
 
-DEFINE_string(host, "0.0.0.0", "Host to listen on");
-DEFINE_int32(port, 8080, "Port to listen on");
+  app.get("/foo", [] { return "Hello from /foo!\n"; });
 
-int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  app.get("/bar", []() -> wrap::Task<std::string> {
+    co_return "Hello asynchronously from /bar!\n";
+  });
 
-  App app;
-
-  app.get("/", []() { return R"({"message":"Hello, world!"})"; });
-
-  app.run(FLAGS_host, FLAGS_port);
-  return 0;
+  app.run();
 }

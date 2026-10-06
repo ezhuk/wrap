@@ -6,9 +6,7 @@ package(
     default_visibility = ["//visibility:public"],
 )
 
-exports_files(
-    ["LICENSE"],
-)
+exports_files(["LICENSE"])
 
 license(
     name = "license",
@@ -18,23 +16,16 @@ license(
 
 cc_library(
     name = "wrap",
-    srcs = [
-        "src/app.cpp",
-        "src/wrap.cpp",
+    srcs = ["src/app.cpp"],
+    hdrs = [
+        "include/wrap/app.h",
+        "include/wrap/wrap.h",
     ],
-    hdrs = glob([
-        "include/**/*.h",
-    ]),
-    defines = [
-        'WRAP_VERSION="0.1.0"',
-    ],
-    includes = [
-        "include",
-    ],
+    includes = ["include"],
     deps = [
         "@fmt",
-        "@folly//folly:json",
-        "@proxygen//proxygen:httpserver",
-        "@proxygen//proxygen/httpserver/filters:direct_response_handler",
+        "@proxygen//proxygen/lib/http/coro",
+        "@proxygen//proxygen/lib/http/coro:fixed_source",
+        "@proxygen//proxygen/lib/http/coro/server:coro_httpserver",
     ],
 )

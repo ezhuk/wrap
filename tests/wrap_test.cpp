@@ -1,41 +1,76 @@
 #include <gtest/gtest.h>
 #include <httplib.h>
+#include <wrap/wrap.h>
 
-#include <chrono>
+#include <exception>
 #include <memory>
+#include <string>
 #include <thread>
 
-#include "wrap/app.h"
-
-using namespace wrap;
-
-class WrapTest : public testing::Test {
+namespace {
+class WrapTest : public ::testing::Test {
 protected:
-  static constexpr char const* host = "127.0.0.1";
-  static constexpr int port = 8081;
+  static constexpr char host[] = "127.0.0.1";
+  static constexpr int port = 18081;
 
-  void SetUp() override {
-    app_ = std::make_unique<App>();
-    thread_ = std::thread([&] { app_->run(host, port); });
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    client_ = std::make_unique<httplib::Client>(host, port);
+  static void SetUpTestSuite() {
+    app_ = std::make_unique<wrap::App>(port, 1);
+    app_->get("/foo", [] { return "foo\n"; });
+    app_->get("/bar", []() -> wrap::Task<std::string> { co_return "bar\n"; });
+
+    thread_ = std::thread([] {
+      try {
+        app_->run();
+      } catch (...) {
+        error_ = std::current_exception();
+      }
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
-  void TearDown() override {
-    client_.reset();
+  static void TearDownTestSuite() {
     app_->stop();
-    thread_.join();
+    if (thread_.joinable()) {
+      thread_.join();
+    }
+    app_.reset();
   }
 
-  std::unique_ptr<App> app_;
-  std::thread thread_;
-  std::unique_ptr<httplib::Client> client_;
+  httplib::Result get(std::string const& path) {
+    httplib::Client client(host, port);
+    return client.Get(path);
+  }
+
+  inline static std::unique_ptr<wrap::App> app_;
+  inline static std::thread thread_;
+  inline static std::exception_ptr error_;
 };
 
-TEST_F(WrapTest, GetTest) {
-  app_->get("/", []() { return "TEST"; });
+TEST_F(WrapTest, GetRoot) {
+  auto response = get("/");
 
-  auto const res = client_->Get("/");
-  EXPECT_EQ(res->status, 200);
-  EXPECT_EQ(res->body, "TEST");
+  EXPECT_EQ(error_, nullptr);
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 404);
+  EXPECT_EQ(response->body, "Not Found\n");
 }
+
+TEST_F(WrapTest, GetSyncRoute) {
+  auto response = get("/foo");
+
+  EXPECT_EQ(error_, nullptr);
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 200);
+  EXPECT_EQ(response->body, "foo\n");
+}
+
+TEST_F(WrapTest, GetAsyncRoute) {
+  auto response = get("/bar");
+
+  EXPECT_EQ(error_, nullptr);
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 200);
+  EXPECT_EQ(response->body, "bar\n");
+}
+}  // namespace
