@@ -18,11 +18,14 @@ protected:
       return;
     }
 
-    app_ = std::make_unique<wrap::App>(port, static_cast<std::size_t>(state.range(0)));
+    app_ = std::make_unique<wrap::App>({
+        .threads = static_cast<std::size_t>(state.range(0)),
+    });
+
     app_->get("/foo", [] { return "foo\n"; });
     app_->get("/bar", []() -> wrap::Task<std::string> { co_return "bar\n"; });
 
-    thread_ = std::thread([] { app_->run(); });
+    thread_ = std::thread([] { app_->run(host, port); });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }

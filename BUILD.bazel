@@ -24,8 +24,9 @@ cc_library(
     includes = ["include"],
     deps = [
         "@fmt",
+        "@folly//folly/coro:task",
+        "@proxygen//proxygen/lib/http:message",
         "@proxygen//proxygen/lib/http/coro",
-        "@proxygen//proxygen/lib/http/coro:fixed_source",
         "@proxygen//proxygen/lib/http/coro/server:coro_httpserver",
     ],
 )

@@ -63,8 +63,8 @@ private:
   std::vector<Route> routes_;
 };
 
-App::App(std::uint16_t port, std::size_t threads)
-    : port_(port), threads_(threads), handler_(std::make_shared<Handler>()) {}
+App::App(AppOptions options)
+    : options_(std::move(options)), handler_(std::make_shared<Handler>()) {}
 
 App::~App() { stop(); }
 
@@ -73,10 +73,10 @@ App& App::get(std::string path, GetHandler handler) {
   return *this;
 }
 
-void App::run() {
+void App::run(std::string host, std::uint16_t port) {
   proxygen::coro::HTTPServer::Config config;
-  config.socketConfig.bindAddress.setFromLocalPort(port_);
-  config.numIOThreads = threads_;
+  config.socketConfig.bindAddress.setFromIpPort(host, port);
+  config.numIOThreads = options_.threads;
   config.shutdownOnSignals = {};
 
   server_ = std::make_unique<proxygen::coro::HTTPServer>(std::move(config), handler_);

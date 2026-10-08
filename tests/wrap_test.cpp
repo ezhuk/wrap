@@ -14,13 +14,13 @@ protected:
   static constexpr int port = 18081;
 
   static void SetUpTestSuite() {
-    app_ = std::make_unique<wrap::App>(port, 1);
+    app_ = std::make_unique<wrap::App>();
     app_->get("/foo", [] { return "foo\n"; });
     app_->get("/bar", []() -> wrap::Task<std::string> { co_return "bar\n"; });
 
     thread_ = std::thread([] {
       try {
-        app_->run();
+        app_->run(host, port);
       } catch (...) {
         error_ = std::current_exception();
       }
