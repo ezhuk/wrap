@@ -3,7 +3,9 @@
 #include <string>
 
 int main() {
-  wrap::App app(8080, 1);
+  wrap::App app({
+      .threads = 4,
+  });
 
   app.get("/foo", [] { return "Hello from /foo!\n"; });
 
@@ -11,5 +13,5 @@ int main() {
     co_return "Hello asynchronously from /bar!\n";
   });
 
-  app.run();
+  app.run("0.0.0.0", 8080);
 }

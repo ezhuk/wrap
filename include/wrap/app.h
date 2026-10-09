@@ -18,18 +18,16 @@ namespace wrap {
 template <typename T>
 using Task = folly::coro::Task<T>;
 
+struct AppOptions {
+  std::size_t threads = 0;
+};
+
 class App final {
 public:
   using GetHandler = std::function<Task<std::string>()>;
 
-  explicit App(std::uint16_t port = 8080, std::size_t threads = 1);
+  explicit App(AppOptions options = {});
   ~App();
-
-  App(App const&) = delete;
-  App& operator=(App const&) = delete;
-
-  App(App&&) = delete;
-  App& operator=(App&&) = delete;
 
   App& get(std::string path, GetHandler handler);
 
@@ -43,7 +41,7 @@ public:
     });
   }
 
-  void run();
+  void run(std::string host = "127.0.0.1", std::uint16_t port = 8080);
   void stop();
 
 private:
@@ -52,6 +50,7 @@ private:
   std::uint16_t port_;
   std::size_t threads_;
 
+  AppOptions options_;
   std::shared_ptr<Handler> handler_;
   std::unique_ptr<proxygen::coro::HTTPServer> server_;
 };
