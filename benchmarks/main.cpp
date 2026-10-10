@@ -18,7 +18,7 @@ protected:
       return;
     }
 
-    app_ = std::make_unique<wrap::App>({
+    app_ = std::make_unique<wrap::App>(wrap::AppOptions{
         .threads = static_cast<std::size_t>(state.range(0)),
     });
 

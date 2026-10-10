@@ -17,6 +17,8 @@ protected:
     app_ = std::make_unique<wrap::App>();
     app_->get("/foo", [] { return "foo\n"; });
     app_->get("/bar", []() -> wrap::Task<std::string> { co_return "bar\n"; });
+    app_->post("/echo", [](std::string body) { return body; });
+    app_->post("/async-echo", [](std::string body) -> wrap::Task<std::string> { co_return body; });
 
     thread_ = std::thread([] {
       try {
@@ -40,6 +42,11 @@ protected:
   httplib::Result get(std::string const& path) {
     httplib::Client client(host, port);
     return client.Get(path);
+  }
+
+  httplib::Result post(std::string const& path, std::string const& body) {
+    httplib::Client client(host, port);
+    return client.Post(path, body, "text/plain");
   }
 
   inline static std::unique_ptr<wrap::App> app_;
@@ -72,5 +79,43 @@ TEST_F(WrapTest, GetAsyncRoute) {
   ASSERT_TRUE(response);
   EXPECT_EQ(response->status, 200);
   EXPECT_EQ(response->body, "bar\n");
+}
+
+TEST_F(WrapTest, PostSyncRoute) {
+  auto response = post("/echo", "Hello, POST!\n");
+
+  EXPECT_EQ(error_, nullptr);
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 200);
+  EXPECT_EQ(response->body, "Hello, POST!\n");
+}
+
+TEST_F(WrapTest, PostAsyncRoute) {
+  auto response = post("/async-echo", "Hello, async POST!\n");
+
+  EXPECT_EQ(error_, nullptr);
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 200);
+  EXPECT_EQ(response->body, "Hello, async POST!\n");
+}
+
+TEST_F(WrapTest, PostEmptyBody) {
+  auto response = post("/echo", "");
+
+  EXPECT_EQ(error_, nullptr);
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 200);
+  EXPECT_TRUE(response->body.empty());
+}
+
+TEST_F(WrapTest, PostBodyTooLarge) {
+  std::string body(1024 * 1024 + 1, 'x');
+
+  auto response = post("/echo", body);
+
+  EXPECT_EQ(error_, nullptr);
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 413);
+  EXPECT_EQ(response->body, "Payload Too Large\n");
 }
 }  // namespace

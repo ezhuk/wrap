@@ -96,7 +96,7 @@ public:
 
             if (data) {
               for (auto const& buffer : *data) {
-                body.append(reinterpret_cast<const char*>(buffer.data()), buffer.length());
+                body.append(reinterpret_cast<const char*>(buffer.data()), buffer.size());
               }
             }
           }
