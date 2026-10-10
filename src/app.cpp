@@ -53,9 +53,17 @@ public:
           request.stopReading();
         }
 
-        auto body = co_await route.getHandler();
+        std::string body;
+        int status = 200;
 
-        co_return proxygen::coro::HTTPFixedSource::makeFixedResponse(200, std::move(body));
+        try {
+          body = co_await route.getHandler();
+        } catch (...) {
+          status = 500;
+          body = "Internal Server Error\n";
+        }
+
+        co_return proxygen::coro::HTTPFixedSource::makeFixedResponse(status, std::move(body));
       }
 
       if (method == proxygen::HTTPMethod::POST) {
@@ -102,9 +110,17 @@ public:
           }
         }
 
-        auto response = co_await route.postHandler(std::move(body));
+        std::string response;
+        int status = 200;
 
-        co_return proxygen::coro::HTTPFixedSource::makeFixedResponse(200, std::move(response));
+        try {
+          response = co_await route.postHandler(std::move(body));
+        } catch (...) {
+          status = 500;
+          response = "Internal Server Error\n";
+        }
+
+        co_return proxygen::coro::HTTPFixedSource::makeFixedResponse(status, std::move(response));
       }
     }
 

@@ -4,6 +4,7 @@
 
 #include <exception>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
 
@@ -19,6 +20,16 @@ protected:
     app_->get("/bar", []() -> wrap::Task<std::string> { co_return "bar\n"; });
     app_->post("/echo", [](std::string body) { return body; });
     app_->post("/async-echo", [](std::string body) -> wrap::Task<std::string> { co_return body; });
+    app_->get("/error", []() -> std::string {
+      throw std::runtime_error("sensitive internal details");
+    });
+    app_->get("/async-error", []() -> wrap::Task<std::string> {
+      throw std::runtime_error("asynchronous handler failure");
+      co_return "";
+    });
+    app_->post("/post-error", [](std::string) -> std::string {
+      throw std::runtime_error("POST handler failure");
+    });
 
     thread_ = std::thread([] {
       try {
@@ -117,5 +128,40 @@ TEST_F(WrapTest, PostBodyTooLarge) {
   ASSERT_TRUE(response);
   EXPECT_EQ(response->status, 413);
   EXPECT_EQ(response->body, "Payload Too Large\n");
+}
+
+TEST_F(WrapTest, GetHandlerException) {
+  auto response = get("/error");
+
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 500);
+  EXPECT_EQ(response->body, "Internal Server Error\n");
+}
+
+TEST_F(WrapTest, AsyncGetHandlerException) {
+  auto response = get("/async-error");
+
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 500);
+  EXPECT_EQ(response->body, "Internal Server Error\n");
+}
+
+TEST_F(WrapTest, PostHandlerException) {
+  auto response = post("/post-error", "test");
+
+  ASSERT_TRUE(response);
+  EXPECT_EQ(response->status, 500);
+  EXPECT_EQ(response->body, "Internal Server Error\n");
+}
+
+TEST_F(WrapTest, ServerSurvivesHandlerException) {
+  auto failed = get("/error");
+  ASSERT_TRUE(failed);
+  EXPECT_EQ(failed->status, 500);
+
+  auto recovered = post("/echo", "Still working");
+  ASSERT_TRUE(recovered);
+  EXPECT_EQ(recovered->status, 200);
+  EXPECT_EQ(recovered->body, "Still working");
 }
 }  // namespace
