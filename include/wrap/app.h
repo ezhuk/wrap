@@ -25,11 +25,13 @@ struct AppOptions {
 class App final {
 public:
   using GetHandler = std::function<Task<std::string>()>;
+  using PostHandler = std::function<Task<std::string>(std::string)>;
 
   explicit App(AppOptions options = {});
   ~App();
 
   App& get(std::string path, GetHandler handler);
+  App& post(std::string path, PostHandler handler);
 
   template <typename F>
     requires requires(F& handler) {
@@ -39,6 +41,19 @@ public:
     return get(std::move(path), [handler = std::move(handler)]() mutable -> Task<std::string> {
       co_return std::string{handler()};
     });
+  }
+
+  template <typename F>
+    requires requires(F& handler, std::string body) {
+      { handler(std::move(body)) } -> std::convertible_to<std::string>;
+    }
+  App& post(std::string path, F handler) {
+    return post(
+        std::move(path),
+        [handler = std::move(handler)](std::string body) mutable -> Task<std::string> {
+          co_return std::string{handler(std::move(body))};
+        }
+    );
   }
 
   void run(std::string host = "127.0.0.1", std::uint16_t port = 8080);
