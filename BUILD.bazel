@@ -27,6 +27,7 @@ cc_library(
         "@folly//folly/coro:task",
         "@proxygen//proxygen/lib/http:message",
         "@proxygen//proxygen/lib/http/coro",
+        "@proxygen//proxygen/lib/http/coro:source",
         "@proxygen//proxygen/lib/http/coro/server:coro_httpserver",
     ],
 )
