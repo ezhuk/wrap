@@ -1,0 +1,21 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "wrap",
+    srcs = ["app.cpp"],
+    hdrs = [
+        "app.h",
+        "wrap.h",
+    ],
+    include_prefix = "wrap",
+    deps = [
+        "@fmt",
+        "@folly//folly/coro:task",
+        "@proxygen//proxygen/lib/http:message",
+        "@proxygen//proxygen/lib/http/coro",
+        "@proxygen//proxygen/lib/http/coro:source",
+        "@proxygen//proxygen/lib/http/coro/server:coro_httpserver",
+    ],
+)

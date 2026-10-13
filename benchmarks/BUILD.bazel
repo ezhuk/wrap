@@ -6,7 +6,7 @@ cc_binary(
     name = "wrap_bench",
     srcs = ["main.cpp"],
     deps = [
-        "//:wrap",
+        "//wrap",
         "@cpp-httplib//:httplib",
         "@google_benchmark//:benchmark_main",
     ],

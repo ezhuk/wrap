@@ -5,5 +5,5 @@ package(default_package_metadata = ["//:license"])
 cc_binary(
     name = "hello",
     srcs = ["main.cpp"],
-    deps = ["//:wrap"],
+    deps = ["//wrap"],
 )

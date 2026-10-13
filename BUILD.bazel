@@ -1,4 +1,3 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_license//rules:license.bzl", "license")
 
 package(
@@ -12,22 +11,4 @@ license(
     name = "license",
     license_kinds = ["@rules_license//licenses/spdx:MIT"],
     license_text = "LICENSE",
-)
-
-cc_library(
-    name = "wrap",
-    srcs = ["src/app.cpp"],
-    hdrs = [
-        "include/wrap/app.h",
-        "include/wrap/wrap.h",
-    ],
-    includes = ["include"],
-    deps = [
-        "@fmt",
-        "@folly//folly/coro:task",
-        "@proxygen//proxygen/lib/http:message",
-        "@proxygen//proxygen/lib/http/coro",
-        "@proxygen//proxygen/lib/http/coro:source",
-        "@proxygen//proxygen/lib/http/coro/server:coro_httpserver",
-    ],
 )
