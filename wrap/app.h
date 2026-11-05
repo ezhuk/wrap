@@ -62,9 +62,6 @@ public:
 private:
   class Handler;
 
-  std::uint16_t port_;
-  std::size_t threads_;
-
   AppOptions options_;
   std::shared_ptr<Handler> handler_;
   std::unique_ptr<proxygen::coro::HTTPServer> server_;
