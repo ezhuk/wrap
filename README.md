@@ -19,7 +19,6 @@ bazel run -c opt //examples/hello
 
 - [facebook/folly](https://github.com/facebook/folly) - licensed under the [Apache License 2.0](https://github.com/facebook/folly/blob/main/LICENSE)
 - [facebook/proxygen](https://github.com/facebook/proxygen) - licensed under the [BSD 3-Clause License](https://github.com/facebook/proxygen/blob/main/LICENSE)
-- [yhirose/cpp-httplib](https://github.com/yhirose/cpp-httplib) - licensed under the [MIT License](https://github.com/yhirose/cpp-httplib/blob/master/LICENSE)
 
 ## License
 
