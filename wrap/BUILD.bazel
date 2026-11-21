@@ -12,6 +12,7 @@ cc_library(
     include_prefix = "wrap",
     deps = [
         "@folly//folly/coro:task",
+        "@folly//folly/init",
         "@proxygen//proxygen/lib/http:message",
         "@proxygen//proxygen/lib/http/coro",
         "@proxygen//proxygen/lib/http/coro:source",
