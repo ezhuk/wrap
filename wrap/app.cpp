@@ -143,7 +143,12 @@ private:
 };
 
 App::App(AppOptions options)
-    : options_(std::move(options)), handler_(std::make_shared<Handler>()) {}
+    : init_(nullptr, nullptr, folly::InitOptions{}.useGFlags(false)),
+      options_(std::move(options)),
+      handler_(std::make_shared<Handler>()) {}
+
+App::App(int& argc, char**& argv, AppOptions options)
+    : init_(&argc, &argv), options_(std::move(options)), handler_(std::make_shared<Handler>()) {}
 
 App::~App() { stop(); }
 

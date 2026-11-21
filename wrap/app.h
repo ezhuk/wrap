@@ -1,6 +1,7 @@
 #pragma once
 
 #include <folly/coro/Task.h>
+#include <folly/init/Init.h>
 
 #include <concepts>
 #include <cstddef>
@@ -28,6 +29,7 @@ public:
   using PostHandler = std::function<Task<std::string>(std::string)>;
 
   explicit App(AppOptions options = {});
+  App(int& argc, char**& argv, AppOptions options = {});
   ~App();
 
   App& get(std::string path, GetHandler handler);
@@ -62,6 +64,7 @@ public:
 private:
   class Handler;
 
+  folly::Init init_;
   AppOptions options_;
   std::shared_ptr<Handler> handler_;
   std::unique_ptr<proxygen::coro::HTTPServer> server_;
